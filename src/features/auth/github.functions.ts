@@ -21,6 +21,7 @@ import {
 import { consumeOAuthState, issueOAuthState } from '@/server/oauth-state'
 import { authSessionConfig } from '@/server/session'
 import type { GitHubInstallationRepository, GitHubUserInstallation } from '@/server/github-app'
+import { requireConnectedSessionMiddleware } from '@/server/auth-middleware'
 
 async function resolveInstallation(
   accessToken: string,
@@ -169,6 +170,12 @@ export const updateConnectedBranch = createServerFn({ method: 'POST' })
     }))
 
     return { branch: data.branch.trim() }
+  })
+
+export const getConnectedSession = createServerFn({ method: 'GET' })
+  .middleware([requireConnectedSessionMiddleware])
+  .handler(async ({ context }) => {
+    return context.auth.session
   })
 
 export const disconnectGitHubRepo = createServerFn({ method: 'POST' }).handler(async () => {
