@@ -1,4 +1,4 @@
-import { differenceInCalendarDays } from 'date-fns'
+import { differenceInCalendarDays, isWithinInterval, parseISO } from 'date-fns'
 
 import { DEFAULT_CATEGORIES } from '@/constants/default-categories'
 import {
@@ -52,8 +52,14 @@ export function buildAnalyticsQueryResult(input: {
 
   const sourceExpenses = groupedByCurrency.get(selectedCurrency) ?? []
   const filteredExpenses = sourceExpenses.filter((expense) => {
-    const inRange =
-      expense.date >= dateRange.start.toISOString() && expense.date <= dateRange.end.toISOString()
+    let inRange = false
+
+    try {
+      inRange = isWithinInterval(parseISO(expense.date), dateRange)
+    } catch {
+      inRange = false
+    }
+
     if (!inRange) return false
 
     if (
