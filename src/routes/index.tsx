@@ -46,12 +46,15 @@ function Home() {
           </div>
           <div className="flex flex-wrap gap-3">
             <Button size="lg" render={<a href="/connect" />}>
-              Connect GitHub
+              Continue with GitHub
               <ArrowRightIcon data-icon="inline-end" />
+            </Button>
+            <Button size="lg" variant="outline" render={<a href="/install" />}>
+              Install GitHub App
             </Button>
             <Button
               size="lg"
-              variant="outline"
+              variant="ghost"
               render={<a href={siteConfig.playStoreUrl} target="_blank" rel="noreferrer" />}
             >
               Get the Android app
@@ -70,7 +73,9 @@ function Home() {
           <CardContent className="space-y-4 text-sm text-muted-foreground">
             <div className="flex items-start gap-3">
               <ShieldCheckIcon className="mt-0.5 size-4 text-foreground" />
-              <p>GitHub App permissions are read-only and limited to the selected sync repo.</p>
+              <p>
+                Install once, then use GitHub sign-in to reconnect without revisiting app settings.
+              </p>
             </div>
             <div className="flex items-start gap-3">
               <GithubIcon className="mt-0.5 size-4 text-foreground" />

@@ -9,6 +9,7 @@
 // Additionally, you should also exclude this file from your linter and/or formatter to prevent it from being checked or modified.
 
 import { Route as rootRouteImport } from './routes/__root'
+import { Route as InstallRouteImport } from './routes/install'
 import { Route as ConnectRouteImport } from './routes/connect'
 import { Route as AuthenticatedRouteImport } from './routes/_authenticated'
 import { Route as IndexRouteImport } from './routes/index'
@@ -16,6 +17,11 @@ import { Route as GithubSetupRouteImport } from './routes/github.setup'
 import { Route as AuthenticatedAppRouteImport } from './routes/_authenticated.app'
 import { Route as AuthGithubCallbackRouteImport } from './routes/auth.github.callback'
 
+const InstallRoute = InstallRouteImport.update({
+  id: '/install',
+  path: '/install',
+  getParentRoute: () => rootRouteImport,
+} as any)
 const ConnectRoute = ConnectRouteImport.update({
   id: '/connect',
   path: '/connect',
@@ -49,6 +55,7 @@ const AuthGithubCallbackRoute = AuthGithubCallbackRouteImport.update({
 export interface FileRoutesByFullPath {
   '/': typeof IndexRoute
   '/connect': typeof ConnectRoute
+  '/install': typeof InstallRoute
   '/app': typeof AuthenticatedAppRoute
   '/github/setup': typeof GithubSetupRoute
   '/auth/github/callback': typeof AuthGithubCallbackRoute
@@ -56,6 +63,7 @@ export interface FileRoutesByFullPath {
 export interface FileRoutesByTo {
   '/': typeof IndexRoute
   '/connect': typeof ConnectRoute
+  '/install': typeof InstallRoute
   '/app': typeof AuthenticatedAppRoute
   '/github/setup': typeof GithubSetupRoute
   '/auth/github/callback': typeof AuthGithubCallbackRoute
@@ -65,6 +73,7 @@ export interface FileRoutesById {
   '/': typeof IndexRoute
   '/_authenticated': typeof AuthenticatedRouteWithChildren
   '/connect': typeof ConnectRoute
+  '/install': typeof InstallRoute
   '/_authenticated/app': typeof AuthenticatedAppRoute
   '/github/setup': typeof GithubSetupRoute
   '/auth/github/callback': typeof AuthGithubCallbackRoute
@@ -74,16 +83,24 @@ export interface FileRouteTypes {
   fullPaths:
     | '/'
     | '/connect'
+    | '/install'
     | '/app'
     | '/github/setup'
     | '/auth/github/callback'
   fileRoutesByTo: FileRoutesByTo
-  to: '/' | '/connect' | '/app' | '/github/setup' | '/auth/github/callback'
+  to:
+    | '/'
+    | '/connect'
+    | '/install'
+    | '/app'
+    | '/github/setup'
+    | '/auth/github/callback'
   id:
     | '__root__'
     | '/'
     | '/_authenticated'
     | '/connect'
+    | '/install'
     | '/_authenticated/app'
     | '/github/setup'
     | '/auth/github/callback'
@@ -93,12 +110,20 @@ export interface RootRouteChildren {
   IndexRoute: typeof IndexRoute
   AuthenticatedRoute: typeof AuthenticatedRouteWithChildren
   ConnectRoute: typeof ConnectRoute
+  InstallRoute: typeof InstallRoute
   GithubSetupRoute: typeof GithubSetupRoute
   AuthGithubCallbackRoute: typeof AuthGithubCallbackRoute
 }
 
 declare module '@tanstack/react-router' {
   interface FileRoutesByPath {
+    '/install': {
+      id: '/install'
+      path: '/install'
+      fullPath: '/install'
+      preLoaderRoute: typeof InstallRouteImport
+      parentRoute: typeof rootRouteImport
+    }
     '/connect': {
       id: '/connect'
       path: '/connect'
@@ -160,6 +185,7 @@ const rootRouteChildren: RootRouteChildren = {
   IndexRoute: IndexRoute,
   AuthenticatedRoute: AuthenticatedRouteWithChildren,
   ConnectRoute: ConnectRoute,
+  InstallRoute: InstallRoute,
   GithubSetupRoute: GithubSetupRoute,
   AuthGithubCallbackRoute: AuthGithubCallbackRoute,
 }
