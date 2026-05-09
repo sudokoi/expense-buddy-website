@@ -37,7 +37,9 @@ async function getRepositoryTree(summary: ConnectedRepoSummary) {
     recursive: '1',
   })
 
-  return tree.data.tree.filter((entry) => entry.type === 'blob') as GitHubSyncFile[]
+  return tree.data.tree.filter(
+    (entry: { type?: string | null }) => entry.type === 'blob',
+  ) as GitHubSyncFile[]
 }
 
 async function getFileContent(summary: ConnectedRepoSummary, path: string) {

@@ -1,6 +1,6 @@
 import { eachDayOfInterval, format } from 'date-fns'
 
-import { CATEGORY_COLORS, getCategoryColor } from '@/constants/category-colors'
+import { getCategoryColor } from '@/constants/category-colors'
 import { PAYMENT_METHOD_COLORS } from '@/constants/payment-method-colors'
 import { getCurrencySymbol } from '@/features/analytics/currency'
 import { getLocalDayKey } from '@/features/analytics/date'

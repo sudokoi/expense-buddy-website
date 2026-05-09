@@ -1,5 +1,4 @@
-import { App } from 'octokit'
-import type { OAuthAppAuthentication, OAuthUserAuthentication } from 'octokit'
+import { App, Octokit } from 'octokit'
 
 import { env } from '@/lib/env.server'
 
@@ -30,11 +29,9 @@ const app = new App({
 })
 
 function createUserOctokit(token: string) {
-  return app.getUserOctokit({
-    token: {
-      type: 'oauth',
-      token,
-    } as OAuthUserAuthentication,
+  return app.octokit.auth({
+    type: 'oauth-user',
+    token,
   })
 }
 
@@ -56,24 +53,29 @@ export function createGitHubAuthorizationUrl(state: string, redirectUri: string)
 }
 
 export async function exchangeGitHubCode(code: string, redirectUri: string) {
-  const auth = (await app.oauth.createToken({
+  const auth = await app.oauth.createToken({
     code,
-    redirectUri,
-  })) as OAuthAppAuthentication
+    redirectUrl: redirectUri,
+  })
 
-  if (!auth.token) {
+  if (!auth.authentication.token) {
     throw new Error('GitHub did not return a user token')
   }
 
   return {
-    accessToken: auth.token,
-    refreshToken: auth.refreshToken,
-    expiresAt: auth.expiresAt,
+    accessToken: auth.authentication.token,
+    refreshToken: auth.authentication.refreshToken,
+    expiresAt: auth.authentication.expiresAt,
   }
 }
 
 export async function getAuthenticatedUser(token: string): Promise<GitHubUserProfile> {
-  const octokit = createUserOctokit(token)
+  const auth = await createUserOctokit(token)
+  if (!auth || typeof auth !== 'object' || !('token' in auth) || typeof auth.token !== 'string') {
+    throw new Error('GitHub did not return a usable user token')
+  }
+
+  const octokit = new Octokit({ auth: auth.token })
   const { data } = await octokit.request('GET /user')
   return {
     id: data.id,
@@ -83,7 +85,12 @@ export async function getAuthenticatedUser(token: string): Promise<GitHubUserPro
 }
 
 export async function listUserInstallations(token: string) {
-  const octokit = createUserOctokit(token)
+  const auth = await createUserOctokit(token)
+  if (!auth || typeof auth !== 'object' || !('token' in auth) || typeof auth.token !== 'string') {
+    throw new Error('GitHub did not return a usable user token')
+  }
+
+  const octokit = new Octokit({ auth: auth.token })
   const { data } = await octokit.request('GET /user/installations', {
     per_page: 100,
   })
@@ -92,7 +99,12 @@ export async function listUserInstallations(token: string) {
 }
 
 export async function listInstallationRepositories(token: string, installationId: number) {
-  const octokit = createUserOctokit(token)
+  const auth = await createUserOctokit(token)
+  if (!auth || typeof auth !== 'object' || !('token' in auth) || typeof auth.token !== 'string') {
+    throw new Error('GitHub did not return a usable user token')
+  }
+
+  const octokit = new Octokit({ auth: auth.token })
   const { data } = await octokit.request('GET /user/installations/{installation_id}/repositories', {
     installation_id: installationId,
     per_page: 100,
@@ -105,10 +117,18 @@ export async function listInstallationRepositories(token: string, installationId
 }
 
 export async function createInstallationOctokit(installationId: number, repositoryIds?: number[]) {
-  return app.getInstallationOctokit(installationId, {
+  const auth = await app.octokit.auth({
+    type: 'installation',
+    installationId,
     repositoryIds,
     permissions: {
       contents: 'read',
     },
   })
+
+  if (!auth || typeof auth !== 'object' || !('token' in auth) || typeof auth.token !== 'string') {
+    throw new Error('GitHub did not return a usable installation token')
+  }
+
+  return new Octokit({ auth: auth.token })
 }

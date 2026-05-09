@@ -1,6 +1,6 @@
 import Papa from 'papaparse'
 
-import type { Expense, ExpenseCategory, PaymentMethodType } from '@/types/expense'
+import type { Expense, PaymentMethodType } from '@/types/expense'
 
 export interface CSVRow {
   id: string
@@ -32,11 +32,11 @@ export function importFromCSV(csvString: string): Expense[] {
   const now = new Date().toISOString()
 
   return result.data.map((row) => {
-    const paymentMethod = row.paymentMethodType?.trim()
+    const paymentMethod = row.paymentMethodType.trim()
       ? {
           type: row.paymentMethodType as PaymentMethodType,
-          identifier: row.paymentMethodId?.trim() || undefined,
-          instrumentId: row.paymentInstrumentId?.trim() || undefined,
+          identifier: row.paymentMethodId.trim() || undefined,
+          instrumentId: row.paymentInstrumentId.trim() || undefined,
         }
       : undefined
 
@@ -44,13 +44,13 @@ export function importFromCSV(csvString: string): Expense[] {
       id: row.id,
       amount: Number.parseFloat(row.amount),
       currency: row.currency?.trim() || FALLBACK_CURRENCY,
-      category: row.category as ExpenseCategory,
+      category: row.category,
       date: row.date,
       note: row.note || '',
       paymentMethod,
       createdAt: row.createdAt || now,
       updatedAt: row.updatedAt || now,
-      deletedAt: row.deletedAt?.trim() || undefined,
+      deletedAt: row.deletedAt.trim() || undefined,
     }
   })
 }

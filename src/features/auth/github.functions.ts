@@ -64,7 +64,7 @@ export const completeGitHubAuthorization = createServerFn({ method: 'GET' })
     )
     const user = await getAuthenticatedUser(tokenResponse.accessToken)
     const installations = await listUserInstallations(tokenResponse.accessToken)
-    const installation = installations.find((item) => item.id === installationId)
+    const installation = installations.find((item: { id: number }) => item.id === installationId)
 
     if (!installation) {
       throw new Error('GitHub installation not found for this user')

@@ -14,11 +14,19 @@ export function AppShell({ children, className }: AppShellProps) {
     <div className="min-h-screen bg-background text-foreground">
       <header className="border-b border-border/70 bg-background/80 backdrop-blur">
         <div className="mx-auto flex w-full max-w-7xl items-center justify-between px-6 py-4">
-          <Link to="/" className="text-sm font-semibold tracking-tight">
+          <Link
+            to="/"
+            search={{ authError: undefined }}
+            className="text-sm font-semibold tracking-tight"
+          >
             Expense Buddy Web
           </Link>
           <nav className="flex items-center gap-3 text-sm text-muted-foreground">
-            <Link to="/" className="transition-colors hover:text-foreground">
+            <Link
+              to="/"
+              search={{ authError: undefined }}
+              className="transition-colors hover:text-foreground"
+            >
               Home
             </Link>
             <Link to="/app" className="transition-colors hover:text-foreground">
