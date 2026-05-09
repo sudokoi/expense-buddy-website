@@ -8,6 +8,9 @@ import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { siteConfig } from '@/lib/site'
 
+const PLAY_STORE_BADGE_URL =
+  'https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png'
+
 export const Route = createFileRoute('/')({
   validateSearch: (search) => ({
     authError: typeof search.authError === 'string' ? search.authError : undefined,
@@ -86,12 +89,9 @@ function Home() {
                 the Play Store to get started.
               </CardDescription>
             </div>
-            <Button
-              variant="outline"
-              render={<a href={siteConfig.playStoreUrl} target="_blank" rel="noreferrer" />}
-            >
-              View on Play Store
-            </Button>
+            <a href={siteConfig.playStoreUrl} target="_blank" rel="noreferrer" className="shrink-0">
+              <img src={PLAY_STORE_BADGE_URL} alt="Get it on Google Play" className="h-16 w-auto" />
+            </a>
           </CardHeader>
         </Card>
         {session ? (
