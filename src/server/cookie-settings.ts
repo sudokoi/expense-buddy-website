@@ -1,6 +1,7 @@
 import { env } from '@/lib/env.server'
+import { getScopedCookieName as getCookieName, shouldUseSecureCookies } from '@/lib/cookies'
 
-const usesSecureCookies = env.appOrigin.startsWith('https://')
+const usesSecureCookies = shouldUseSecureCookies(env.appOrigin)
 
 export const authCookieOptions = {
   httpOnly: true,
@@ -9,6 +10,13 @@ export const authCookieOptions = {
   path: '/',
 }
 
+export const preferenceCookieOptions = {
+  httpOnly: false,
+  sameSite: 'lax' as const,
+  secure: usesSecureCookies,
+  path: '/',
+}
+
 export function getScopedCookieName(name: string) {
-  return usesSecureCookies ? `__Host-${name}` : name
+  return getCookieName(name, env.appOrigin)
 }

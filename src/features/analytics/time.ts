@@ -4,7 +4,6 @@ import {
   format,
   isValid,
   parse,
-  parseISO,
   startOfDay,
   startOfMonth,
   subDays,
@@ -13,7 +12,7 @@ import {
 import type { DateRange, TimeWindow } from '@/types/analytics'
 import type { Expense } from '@/types/expense'
 
-import { formatDate } from '@/features/analytics/date'
+import { formatDate, getLocalDayKey, getLocalMonthKey } from '@/features/analytics/date'
 
 export function getTimeWindowDays(timeWindow: TimeWindow): number {
   switch (timeWindow) {
@@ -41,7 +40,7 @@ export function getDateRangeForTimeWindow(timeWindow: TimeWindow, expenses?: Exp
     let earliestDate = new Date()
 
     for (const expense of expenses) {
-      const expenseDate = parseISO(expense.date)
+      const expenseDate = new Date(expense.date)
       if (expenseDate < earliestDate) {
         earliestDate = expenseDate
       }
@@ -84,16 +83,49 @@ export function getDateRangeForFilters(
   return getDateRangeForTimeWindow(timeWindow, expenses)
 }
 
-export function getAvailableMonths(expenses: Expense[]): string[] {
+export function getMonthKeysForTimeWindow(
+  timeWindow: TimeWindow,
+  expenses: Expense[],
+  timeZone?: string,
+): Set<string> {
+  if (timeWindow === 'all') {
+    return new Set(expenses.map((expense) => getLocalMonthKey(expense.date, timeZone)))
+  }
+
+  const { start, end } = getDateRangeForTimeWindow(timeWindow)
+  const monthKeys = new Set<string>()
+  const cursor = new Date(start)
+
+  while (cursor <= end) {
+    monthKeys.add(getLocalMonthKey(cursor, timeZone))
+    cursor.setDate(cursor.getDate() + 1)
+  }
+
+  return monthKeys
+}
+
+export function getDayKeysForTimeWindow(timeWindow: TimeWindow, timeZone?: string): Set<string> {
+  if (timeWindow === 'all') {
+    return new Set()
+  }
+
+  const { start, end } = getDateRangeForTimeWindow(timeWindow)
+  const dayKeys = new Set<string>()
+  const cursor = new Date(start)
+
+  while (cursor <= end) {
+    dayKeys.add(getLocalDayKey(cursor, timeZone))
+    cursor.setDate(cursor.getDate() + 1)
+  }
+
+  return dayKeys
+}
+
+export function getAvailableMonths(expenses: Expense[], timeZone?: string): string[] {
   const months = new Set<string>()
 
   for (const expense of expenses) {
-    const expenseDate = parseISO(expense.date)
-    if (!isValid(expenseDate)) continue
-
-    months.add(
-      `${expenseDate.getFullYear()}-${String(expenseDate.getMonth() + 1).padStart(2, '0')}`,
-    )
+    months.add(getLocalMonthKey(expense.date, timeZone))
   }
 
   return Array.from(months).sort((a, b) => b.localeCompare(a))

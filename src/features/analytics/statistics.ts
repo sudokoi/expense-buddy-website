@@ -13,6 +13,7 @@ export interface AnalyticsStatistics {
 export function calculateStatistics(
   expenses: Expense[],
   daysInPeriod: number,
+  timeZone?: string,
 ): AnalyticsStatistics {
   const totalSpending = expenses.reduce((sum, expense) => sum + Math.abs(expense.amount), 0)
   const averageDaily = daysInPeriod > 0 ? totalSpending / daysInPeriod : 0
@@ -26,7 +27,7 @@ export function calculateStatistics(
       (categoryTotals.get(expense.category) ?? 0) + Math.abs(expense.amount),
     )
 
-    const dayKey = getLocalDayKey(expense.date)
+    const dayKey = getLocalDayKey(expense.date, timeZone)
     dailyTotals.set(dayKey, (dailyTotals.get(dayKey) ?? 0) + Math.abs(expense.amount))
   }
 

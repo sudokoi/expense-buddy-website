@@ -87,13 +87,14 @@ export function aggregateByDay(
   expenses: Expense[],
   dateRange: DateRange,
   currencyCode: string = 'INR',
+  timeZone?: string,
 ): LineChartDataItem[] {
   const days = eachDayOfInterval({ start: dateRange.start, end: dateRange.end })
   const symbol = getCurrencySymbol(currencyCode)
   const totals = new Map<string, number>()
 
   for (const expense of expenses) {
-    const dayKey = getLocalDayKey(expense.date)
+    const dayKey = getLocalDayKey(expense.date, timeZone)
     totals.set(dayKey, (totals.get(dayKey) ?? 0) + Math.abs(expense.amount))
   }
 

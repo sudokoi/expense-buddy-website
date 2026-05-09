@@ -1,4 +1,4 @@
-import { differenceInCalendarDays, isWithinInterval, parseISO } from 'date-fns'
+import { differenceInCalendarDays } from 'date-fns'
 
 import { DEFAULT_CATEGORIES } from '@/constants/default-categories'
 import {
@@ -7,8 +7,13 @@ import {
   aggregateByPaymentMethod,
 } from '@/features/analytics/aggregations'
 import { groupExpensesByCurrency } from '@/features/analytics/currency'
+import { getLocalDayKey, getLocalMonthKey } from '@/features/analytics/date'
 import { calculateStatistics } from '@/features/analytics/statistics'
-import { getDateRangeForFilters } from '@/features/analytics/time'
+import {
+  getDateRangeForFilters,
+  getDayKeysForTimeWindow,
+  getMonthKeysForTimeWindow,
+} from '@/features/analytics/time'
 import type {
   DateRange,
   FilterState,
@@ -38,8 +43,9 @@ export function buildAnalyticsQueryResult(input: {
   expenses: Expense[]
   settings: SyncedSettings | null
   filters: FilterState
+  timeZone?: string | null
 }): AnalyticsQueryResult {
-  const { expenses, settings, filters } = input
+  const { expenses, settings, filters, timeZone } = input
   const categories = settings?.categories?.length ? settings.categories : DEFAULT_CATEGORIES
   const dateRange = getDateRangeForFilters(filters.timeWindow, filters.selectedMonth, expenses)
   const groupedByCurrency = groupExpensesByCurrency(expenses, settings?.defaultCurrency || 'INR')
@@ -51,14 +57,19 @@ export function buildAnalyticsQueryResult(input: {
       : availableCurrencies[0] || settings?.defaultCurrency || 'INR'
 
   const sourceExpenses = groupedByCurrency.get(selectedCurrency) ?? []
-  const filteredExpenses = sourceExpenses.filter((expense) => {
-    let inRange = false
+  const monthKeysInWindow = getMonthKeysForTimeWindow(
+    filters.timeWindow,
+    sourceExpenses,
+    timeZone || undefined,
+  )
+  const dayKeysInWindow = getDayKeysForTimeWindow(filters.timeWindow, timeZone || undefined)
 
-    try {
-      inRange = isWithinInterval(parseISO(expense.date), dateRange)
-    } catch {
-      inRange = false
-    }
+  const filteredExpenses = sourceExpenses.filter((expense) => {
+    const dayKey = getLocalDayKey(expense.date, timeZone || undefined)
+    const monthKey = getLocalMonthKey(expense.date, timeZone || undefined)
+    const inRange = filters.selectedMonth
+      ? monthKey === filters.selectedMonth
+      : dayKeysInWindow.has(dayKey) && monthKeysInWindow.has(monthKey)
 
     if (!inRange) return false
 
@@ -83,14 +94,19 @@ export function buildAnalyticsQueryResult(input: {
     categories.map((category) => [category.label, category.color]),
   )
   const daysInPeriod = Math.max(1, differenceInCalendarDays(dateRange.end, dateRange.start) + 1)
-  const statistics = calculateStatistics(filteredExpenses, daysInPeriod)
+  const statistics = calculateStatistics(filteredExpenses, daysInPeriod, timeZone || undefined)
 
   return {
     dateRange,
     categories,
     availableCurrencies,
     filteredExpenses,
-    lineChartData: aggregateByDay(filteredExpenses, dateRange, selectedCurrency),
+    lineChartData: aggregateByDay(
+      filteredExpenses,
+      dateRange,
+      selectedCurrency,
+      timeZone || undefined,
+    ),
     categoryBreakdown: aggregateByCategory(filteredExpenses, categoryColorMap),
     paymentMethodBreakdown: aggregateByPaymentMethod(filteredExpenses),
     totalSpending: statistics.totalSpending,

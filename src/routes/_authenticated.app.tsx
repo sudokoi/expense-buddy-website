@@ -1,4 +1,5 @@
-import { createFileRoute } from '@tanstack/react-router'
+import { useEffect } from 'react'
+import { createFileRoute, useRouter } from '@tanstack/react-router'
 
 import { BreakdownList } from '@/components/analytics/breakdown-list'
 import { StatCard } from '@/components/analytics/stat-card'
@@ -9,35 +10,53 @@ import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { buildAnalyticsQueryResult } from '@/features/analytics/queries'
 import { getCurrencySymbol } from '@/features/analytics/currency'
 import { parseFilters } from '@/features/analytics/filters'
+import { getUserTimezone } from '@/features/analytics/timezone.functions'
 import { loadRepositorySnapshot } from '@/features/github/repository'
 import { formatDate } from '@/features/analytics/date'
+import { USER_TIMEZONE_COOKIE, getScopedCookieName, shouldUseSecureCookies } from '@/lib/cookies'
 
 export const Route = createFileRoute('/_authenticated/app')({
   validateSearch: (search) => search,
   loader: async ({ location }) => {
     const snapshot = await loadRepositorySnapshot()
     const filters = parseFilters(location.search)
+    const timeZone = await getUserTimezone()
     const analytics = buildAnalyticsQueryResult({
       expenses: snapshot.expenses,
       settings: snapshot.settings,
       filters,
+      timeZone,
     })
 
     return {
       snapshot,
       filters,
       analytics,
+      timeZone,
     }
   },
   component: AnalyticsRoute,
 })
 
 function AnalyticsRoute() {
-  const { snapshot, analytics } = Route.useLoaderData()
+  const { snapshot, analytics, timeZone } = Route.useLoaderData()
+  const router = useRouter()
   const currency = analytics.availableCurrencies[0] || snapshot.settings?.defaultCurrency || 'INR'
   const symbol = getCurrencySymbol(currency)
   const hasExpenses = snapshot.expenses.length > 0
   const hasFilteredExpenses = analytics.filteredExpenses.length > 0
+
+  useEffect(() => {
+    const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
+    if (!browserTimeZone || browserTimeZone === timeZone) {
+      return
+    }
+
+    const secure = shouldUseSecureCookies(window.location.origin) ? '; Secure' : ''
+    const cookieName = getScopedCookieName(USER_TIMEZONE_COOKIE, window.location.origin)
+    document.cookie = `${cookieName}=${encodeURIComponent(browserTimeZone)}; Path=/; SameSite=Lax${secure}`
+    void router.invalidate()
+  }, [router, timeZone])
 
   return (
     <AppShell className="space-y-8">
