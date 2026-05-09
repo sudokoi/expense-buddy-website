@@ -125,7 +125,9 @@ export const completeGitHubAuthorization = createServerFn({ method: 'GET' })
       resolvedInstallation.repositories ??
       (await listInstallationRepositories(tokenResponse.accessToken, installation.id))
 
-    if (repositories.repositorySelection !== 'selected') {
+    const repositorySelection = installation.repositorySelection ?? repositories.repositorySelection
+
+    if (repositorySelection === 'all') {
       throw new Error('GitHub App installation must be limited to selected repositories')
     }
 

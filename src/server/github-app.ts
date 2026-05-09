@@ -21,6 +21,7 @@ export interface GitHubUserProfile {
 
 export interface GitHubUserInstallation {
   id: number
+  repositorySelection?: string
 }
 
 const app = new App({
