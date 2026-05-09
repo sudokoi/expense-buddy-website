@@ -9,15 +9,31 @@ export interface CSVRow {
   category: string
   date: string
   note: string
-  paymentMethodType: string
-  paymentMethodId: string
-  paymentInstrumentId: string
-  createdAt: string
-  updatedAt: string
-  deletedAt: string
+  paymentMethodType?: string
+  paymentMethodId?: string
+  paymentInstrumentId?: string
+  createdAt?: string
+  updatedAt?: string
+  deletedAt?: string
+  deleted_at?: string
+  is_deleted?: string
 }
 
 const FALLBACK_CURRENCY = 'INR'
+
+function isLegacyDeletedFlag(value: string | undefined): boolean {
+  const normalized = value?.trim().toLowerCase()
+  return normalized === 'true' || normalized === '1' || normalized === 'yes'
+}
+
+function resolveDeletedAt(row: CSVRow): string | undefined {
+  const deletedAt = row.deletedAt?.trim() || row.deleted_at?.trim()
+  if (deletedAt) {
+    return deletedAt
+  }
+
+  return isLegacyDeletedFlag(row.is_deleted) ? row.updatedAt || row.createdAt || 'true' : undefined
+}
 
 export function importFromCSV(csvString: string): Expense[] {
   const result = Papa.parse<CSVRow>(csvString, {
@@ -32,11 +48,11 @@ export function importFromCSV(csvString: string): Expense[] {
   const now = new Date().toISOString()
 
   return result.data.map((row) => {
-    const paymentMethod = row.paymentMethodType.trim()
+    const paymentMethod = row.paymentMethodType?.trim()
       ? {
           type: row.paymentMethodType as PaymentMethodType,
-          identifier: row.paymentMethodId.trim() || undefined,
-          instrumentId: row.paymentInstrumentId.trim() || undefined,
+          identifier: row.paymentMethodId?.trim() || undefined,
+          instrumentId: row.paymentInstrumentId?.trim() || undefined,
         }
       : undefined
 
@@ -50,7 +66,7 @@ export function importFromCSV(csvString: string): Expense[] {
       paymentMethod,
       createdAt: row.createdAt || now,
       updatedAt: row.updatedAt || now,
-      deletedAt: row.deletedAt.trim() || undefined,
+      deletedAt: resolveDeletedAt(row),
     }
   })
 }
