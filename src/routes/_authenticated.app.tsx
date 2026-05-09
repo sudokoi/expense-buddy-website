@@ -1,4 +1,4 @@
-import { useEffect } from 'react'
+import { useEffect, useState } from 'react'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 
 import { BreakdownList } from '@/components/analytics/breakdown-list'
@@ -7,6 +7,7 @@ import { TrendList } from '@/components/analytics/trend-list'
 import { AppShell } from '@/components/app-shell'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
+import { Skeleton } from '@/components/ui/skeleton'
 import { buildAnalyticsQueryResult } from '@/features/analytics/queries'
 import { getCurrencySymbol } from '@/features/analytics/currency'
 import { parseFilters } from '@/features/analytics/filters'
@@ -41,6 +42,7 @@ export const Route = createFileRoute('/_authenticated/app')({
 function AnalyticsRoute() {
   const { snapshot, analytics, timeZone } = Route.useLoaderData()
   const router = useRouter()
+  const [isSyncingTimezone, setIsSyncingTimezone] = useState(false)
   const currency = analytics.availableCurrencies[0] || snapshot.settings?.defaultCurrency || 'INR'
   const symbol = getCurrencySymbol(currency)
   const hasExpenses = snapshot.expenses.length > 0
@@ -49,14 +51,45 @@ function AnalyticsRoute() {
   useEffect(() => {
     const browserTimeZone = Intl.DateTimeFormat().resolvedOptions().timeZone
     if (!browserTimeZone || browserTimeZone === timeZone) {
+      setIsSyncingTimezone(false)
       return
     }
 
+    setIsSyncingTimezone(true)
     const secure = shouldUseSecureCookies(window.location.origin) ? '; Secure' : ''
     const cookieName = getScopedCookieName(USER_TIMEZONE_COOKIE, window.location.origin)
     document.cookie = `${cookieName}=${encodeURIComponent(browserTimeZone)}; Path=/; SameSite=Lax${secure}`
     void router.invalidate()
   }, [router, timeZone])
+
+  if (isSyncingTimezone) {
+    return (
+      <AppShell className="space-y-8">
+        <section className="flex flex-col gap-4 rounded-3xl border border-border/70 bg-card/60 p-6 shadow-sm">
+          <div className="space-y-2">
+            <Badge variant="secondary">Read-only GitHub analytics</Badge>
+            <h1 className="text-3xl font-semibold tracking-tight">Overview dashboard</h1>
+            <p className="max-w-2xl text-sm text-muted-foreground">
+              Syncing your local timezone so the dashboard matches the Expense Buddy app.
+            </p>
+          </div>
+        </section>
+
+        <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
+          <Skeleton className="h-28 rounded-3xl" />
+          <Skeleton className="h-28 rounded-3xl" />
+          <Skeleton className="h-28 rounded-3xl" />
+          <Skeleton className="h-28 rounded-3xl" />
+        </section>
+
+        <section className="grid gap-4 xl:grid-cols-[1.5fr_1fr_1fr]">
+          <Skeleton className="h-72 rounded-3xl" />
+          <Skeleton className="h-72 rounded-3xl" />
+          <Skeleton className="h-72 rounded-3xl" />
+        </section>
+      </AppShell>
+    )
+  }
 
   return (
     <AppShell className="space-y-8">
