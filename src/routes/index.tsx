@@ -1,114 +1,102 @@
-import { ArrowRightIcon, GithubIcon, ShieldCheckIcon, SmartphoneIcon } from 'lucide-react'
+import { ArrowRightIcon } from 'lucide-react'
 import { createFileRoute } from '@tanstack/react-router'
 
 import { AppShell } from '@/components/app-shell'
-import { FeatureCard } from '@/components/marketing/feature-card'
+import { getOptionalConnectedSession } from '@/features/auth/github.functions'
 import { getAuthErrorMessage } from '@/features/auth/errors'
-import { Badge } from '@/components/ui/badge'
 import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { siteConfig } from '@/lib/site'
 
 export const Route = createFileRoute('/')({
   validateSearch: (search) => ({
     authError: typeof search.authError === 'string' ? search.authError : undefined,
   }),
+  loader: async () => {
+    const session = await getOptionalConnectedSession()
+    return { session }
+  },
   component: Home,
 })
 
 function Home() {
   const { authError } = Route.useSearch()
   const authErrorMessage = getAuthErrorMessage(authError)
+  const { session } = Route.useLoaderData()
 
   return (
-    <AppShell className="space-y-10">
+    <AppShell
+      hideNavigation
+      className="flex min-h-screen max-w-4xl items-center justify-center py-12"
+    >
       {authErrorMessage ? (
-        <Card className="border-destructive/30 bg-destructive/5 shadow-sm">
-          <CardHeader>
-            <CardTitle>GitHub connection could not be completed</CardTitle>
-            <CardDescription>{authErrorMessage}</CardDescription>
-          </CardHeader>
-        </Card>
+        <div className="absolute top-6 left-1/2 w-full max-w-xl -translate-x-1/2 px-6">
+          <Card className="border-destructive/30 bg-destructive/5 shadow-sm">
+            <CardHeader>
+              <CardTitle>GitHub connection could not be completed</CardTitle>
+              <CardDescription>{authErrorMessage}</CardDescription>
+            </CardHeader>
+          </Card>
+        </div>
       ) : null}
 
-      <section className="grid gap-6 lg:grid-cols-[1.3fr_0.9fr] lg:items-center">
-        <div className="space-y-6">
-          <Badge variant="secondary">Android-first. GitHub-backed. Read-only web analytics.</Badge>
-          <div className="space-y-4">
-            <h1 className="max-w-4xl text-5xl font-semibold tracking-tight text-balance sm:text-6xl">
-              A wider-screen analytics view for Expense Buddy users who sync through GitHub.
-            </h1>
-            <p className="max-w-2xl text-base leading-7 text-muted-foreground sm:text-lg">
-              Expense Buddy Web is an optional companion for people who already keep their confirmed
-              expense history in their own GitHub repo. No editing. No separate backend. Just a
-              calmer place to inspect your data.
-            </p>
-          </div>
-          <div className="flex flex-wrap gap-3">
-            <Button size="lg" render={<a href="/connect" />}>
-              Continue with GitHub
+      <section className="flex w-full flex-col items-center justify-center gap-8 text-center">
+        <img
+          src="/expense-buddy.png"
+          alt="Expense Buddy"
+          className="h-40 w-40 rounded-[2rem] object-cover shadow-[0_30px_80px_rgba(0,0,0,0.18)] sm:h-48 sm:w-48"
+        />
+        <div className="space-y-3">
+          <h1 className="text-4xl font-semibold tracking-tight sm:text-5xl">Expense Buddy Web</h1>
+          <p className="mx-auto max-w-xl text-base leading-7 text-muted-foreground sm:text-lg">
+            Read-only analytics for Expense Buddy users who sync their data through GitHub.
+          </p>
+        </div>
+        <div className="flex flex-wrap items-center justify-center gap-3">
+          {session ? (
+            <Button size="lg" render={<a href="/app" />}>
+              Open dashboard
               <ArrowRightIcon data-icon="inline-end" />
             </Button>
-            <Button size="lg" variant="outline" render={<a href="/install" />}>
-              Install GitHub App
-            </Button>
+          ) : (
+            <>
+              <Button size="lg" render={<a href="/connect" />}>
+                Continue with GitHub
+                <ArrowRightIcon data-icon="inline-end" />
+              </Button>
+              <Button size="lg" variant="outline" render={<a href="/install" />}>
+                Install GitHub App
+              </Button>
+            </>
+          )}
+          <Button
+            size="lg"
+            variant="ghost"
+            render={<a href={siteConfig.playStoreUrl} target="_blank" rel="noreferrer" />}
+          >
+            Get the Android app
+          </Button>
+        </div>
+        <Card className="w-full max-w-2xl border-border/70 bg-card/60 text-left shadow-sm">
+          <CardHeader className="gap-3 sm:grid-cols-[1fr_auto] sm:items-center">
+            <div>
+              <CardTitle>Track expenses on Android</CardTitle>
+              <CardDescription>
+                Expense entry, SMS import, and sync setup live in the Android app. Install it from
+                the Play Store to get started.
+              </CardDescription>
+            </div>
             <Button
-              size="lg"
-              variant="ghost"
+              variant="outline"
               render={<a href={siteConfig.playStoreUrl} target="_blank" rel="noreferrer" />}
             >
-              Get the Android app
+              View on Play Store
             </Button>
-          </div>
-        </div>
-
-        <Card className="border-border/70 bg-linear-to-br from-card via-card to-muted/50 shadow-sm">
-          <CardHeader>
-            <CardTitle>Privacy model stays intact</CardTitle>
-            <CardDescription>
-              The website reads your already-synced expense files from the single GitHub repo you
-              explicitly grant access to.
-            </CardDescription>
           </CardHeader>
-          <CardContent className="space-y-4 text-sm text-muted-foreground">
-            <div className="flex items-start gap-3">
-              <ShieldCheckIcon className="mt-0.5 size-4 text-foreground" />
-              <p>
-                Install once, then use GitHub sign-in to reconnect without revisiting app settings.
-              </p>
-            </div>
-            <div className="flex items-start gap-3">
-              <GithubIcon className="mt-0.5 size-4 text-foreground" />
-              <p>The mobile app keeps working independently. The web app is entirely opt-in.</p>
-            </div>
-            <div className="flex items-start gap-3">
-              <SmartphoneIcon className="mt-0.5 size-4 text-foreground" />
-              <p>
-                Expense entry and editing remain on Android. The web stays a read-only analytics
-                surface.
-              </p>
-            </div>
-          </CardContent>
         </Card>
-      </section>
-
-      <section className="grid gap-4 md:grid-cols-2 xl:grid-cols-4">
-        <FeatureCard
-          title="Repo-backed analytics"
-          description="Reads the same daily CSV files that the mobile app syncs to your GitHub repo."
-        />
-        <FeatureCard
-          title="No separate expense backend"
-          description="The web product derives analytics from your existing sync source instead of duplicating storage."
-        />
-        <FeatureCard
-          title="Extensible dashboards"
-          description="Starts with an overview preset, with room for more presets and browser-local custom dashboards."
-        />
-        <FeatureCard
-          title="Android remains primary"
-          description="Expense capture, SMS import, and syncing stay in the mobile app where they already work."
-        />
+        {session ? (
+          <p className="text-sm text-muted-foreground">Connected as `{session.userLogin}`.</p>
+        ) : null}
       </section>
     </AppShell>
   )

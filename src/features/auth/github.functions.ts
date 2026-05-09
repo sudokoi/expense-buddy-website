@@ -178,6 +178,16 @@ export const getConnectedSession = createServerFn({ method: 'GET' })
     return context.auth.session
   })
 
+export const getOptionalConnectedSession = createServerFn({ method: 'GET' }).handler(async () => {
+  const session = await useSession<AuthSessionData>(authSessionConfig)
+  return session.data.installationId &&
+    session.data.repoId &&
+    session.data.repoFullName &&
+    session.data.branch
+    ? session.data
+    : null
+})
+
 export const disconnectGitHubRepo = createServerFn({ method: 'POST' }).handler(async () => {
   const session = await useSession<AuthSessionData>(authSessionConfig)
   await session.clear()
