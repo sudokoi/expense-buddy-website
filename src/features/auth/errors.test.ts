@@ -15,6 +15,9 @@ describe('getAuthErrorSearch', () => {
     expect(
       getAuthErrorSearch(new Error('Select exactly one GitHub repository for Expense Buddy Web')),
     ).toEqual({ authError: 'single_repository_required' })
+    expect(
+      getAuthErrorSearch(new Error('GitHub installation could not be determined automatically')),
+    ).toEqual({ authError: 'installation_ambiguous' })
   })
 
   it('falls back to a generic auth failure code', () => {

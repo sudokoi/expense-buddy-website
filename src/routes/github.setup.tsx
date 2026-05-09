@@ -1,4 +1,4 @@
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 
 import { beginGitHubAuthorization } from '@/features/auth/github.functions'
 
@@ -10,10 +10,6 @@ export const Route = createFileRoute('/github/setup')({
         : undefined,
   }),
   beforeLoad: async ({ search }) => {
-    if (!search.installation_id) {
-      throw redirect({ to: '/', search: { authError: 'missing_installation_id' } })
-    }
-
     await beginGitHubAuthorization({
       data: {
         installationId: search.installation_id,

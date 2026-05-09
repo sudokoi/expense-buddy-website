@@ -19,6 +19,10 @@ export interface GitHubUserProfile {
   name: string | null
 }
 
+export interface GitHubUserInstallation {
+  id: number
+}
+
 const app = new App({
   appId: env.githubAppId,
   privateKey: env.githubAppPrivateKey,
@@ -95,7 +99,7 @@ export async function listUserInstallations(token: string) {
     per_page: 100,
   })
 
-  return data.installations
+  return data.installations as GitHubUserInstallation[]
 }
 
 export async function listInstallationRepositories(token: string, installationId: number) {

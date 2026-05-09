@@ -20,6 +20,10 @@ export function issuePendingInstallationId(installationId: number) {
   })
 }
 
+export function clearPendingInstallationId() {
+  deleteCookie(INSTALLATION_COOKIE, authCookieOptions)
+}
+
 export function consumePendingInstallationId(): number | null {
   const cookie = getCookie(INSTALLATION_COOKIE)
   deleteCookie(INSTALLATION_COOKIE, authCookieOptions)

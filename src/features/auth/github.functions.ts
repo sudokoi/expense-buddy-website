@@ -14,11 +14,61 @@ import {
   listUserInstallations,
 } from '@/server/github-app'
 import {
+  clearPendingInstallationId,
   consumePendingInstallationId,
   issuePendingInstallationId,
 } from '@/server/installation-state'
 import { consumeOAuthState, issueOAuthState } from '@/server/oauth-state'
 import { authSessionConfig } from '@/server/session'
+import type { GitHubInstallationRepository, GitHubUserInstallation } from '@/server/github-app'
+
+async function resolveInstallation(
+  accessToken: string,
+  installationId?: number | null,
+): Promise<{
+  installation: GitHubUserInstallation
+  repositories?: {
+    repositorySelection: string | undefined
+    repositories: GitHubInstallationRepository[]
+  }
+}> {
+  const installations = await listUserInstallations(accessToken)
+
+  if (installationId) {
+    const installation = installations.find((item) => item.id === installationId)
+    if (!installation) {
+      throw new Error('GitHub installation not found for this user')
+    }
+
+    return { installation }
+  }
+
+  if (installations.length === 0) {
+    throw new Error('GitHub installation not found for this user')
+  }
+
+  if (installations.length === 1) {
+    return { installation: installations[0] }
+  }
+
+  const candidates = await Promise.all(
+    installations.map(async (installation) => ({
+      installation,
+      repositories: await listInstallationRepositories(accessToken, installation.id),
+    })),
+  )
+
+  const matchingCandidates = candidates.filter(
+    ({ repositories }) =>
+      repositories.repositorySelection === 'selected' && repositories.repositories.length === 1,
+  )
+
+  if (matchingCandidates.length === 1) {
+    return matchingCandidates[0]
+  }
+
+  throw new Error('GitHub installation could not be determined automatically')
+}
 
 export const beginGitHubInstallation = createServerFn({ method: 'GET' }).handler(async () => {
   throw redirect({
@@ -29,11 +79,16 @@ export const beginGitHubInstallation = createServerFn({ method: 'GET' }).handler
 export const beginGitHubAuthorization = createServerFn({ method: 'GET' })
   .inputValidator(
     z.object({
-      installationId: z.number().int().positive(),
+      installationId: z.number().int().positive().optional(),
     }),
   )
   .handler(async ({ data }) => {
-    issuePendingInstallationId(data.installationId)
+    if (data.installationId) {
+      issuePendingInstallationId(data.installationId)
+    } else {
+      clearPendingInstallationId()
+    }
+
     const state = issueOAuthState()
 
     throw redirect({
@@ -54,26 +109,22 @@ export const completeGitHubAuthorization = createServerFn({ method: 'GET' })
     }
 
     const installationId = consumePendingInstallationId()
-    if (!installationId) {
-      throw new Error('GitHub installation verification expired. Start the connection flow again')
-    }
 
     const tokenResponse = await exchangeGitHubCode(
       data.code,
       `${env.appOrigin}/auth/github/callback`,
     )
     const user = await getAuthenticatedUser(tokenResponse.accessToken)
-    const installations = await listUserInstallations(tokenResponse.accessToken)
-    const installation = installations.find((item: { id: number }) => item.id === installationId)
-
-    if (!installation) {
-      throw new Error('GitHub installation not found for this user')
-    }
-
-    const repositories = await listInstallationRepositories(
+    const resolvedInstallation = await resolveInstallation(
       tokenResponse.accessToken,
-      installation.id,
+      installationId,
     )
+    const installation = resolvedInstallation.installation
+
+    const repositories =
+      resolvedInstallation.repositories ??
+      (await listInstallationRepositories(tokenResponse.accessToken, installation.id))
+
     if (repositories.repositorySelection !== 'selected') {
       throw new Error('GitHub App installation must be limited to selected repositories')
     }

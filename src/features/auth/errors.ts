@@ -6,6 +6,8 @@ export const authErrorMessages: Record<string, string> = {
     'The GitHub installation confirmation expired before sign-in completed. Try again.',
   installation_not_found:
     'The installed GitHub App could not be matched to your authorized account.',
+  installation_ambiguous:
+    'GitHub could not determine which Expense Buddy installation to use for this account.',
   selected_repositories_required: 'Install the GitHub App with Only select repositories enabled.',
   single_repository_required: 'Select exactly one repository when installing the GitHub App.',
   auth_failed: 'GitHub connection failed. Try again.',
@@ -29,6 +31,10 @@ export function getAuthErrorSearch(error: unknown) {
 
   if (message === 'GitHub installation not found for this user') {
     return { authError: 'installation_not_found' }
+  }
+
+  if (message === 'GitHub installation could not be determined automatically') {
+    return { authError: 'installation_ambiguous' }
   }
 
   if (message === 'GitHub App installation must be limited to selected repositories') {
