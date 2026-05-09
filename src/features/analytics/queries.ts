@@ -1,0 +1,95 @@
+import { differenceInCalendarDays } from 'date-fns'
+
+import { DEFAULT_CATEGORIES } from '@/constants/default-categories'
+import {
+  aggregateByCategory,
+  aggregateByDay,
+  aggregateByPaymentMethod,
+} from '@/features/analytics/aggregations'
+import { groupExpensesByCurrency } from '@/features/analytics/currency'
+import { calculateStatistics } from '@/features/analytics/statistics'
+import { getDateRangeForFilters } from '@/features/analytics/time'
+import type {
+  DateRange,
+  FilterState,
+  LineChartDataItem,
+  PaymentMethodChartDataItem,
+  PieChartDataItem,
+} from '@/types/analytics'
+import type { Category } from '@/types/category'
+import type { Expense } from '@/types/expense'
+import type { SyncedSettings } from '@/types/settings'
+
+export interface AnalyticsQueryResult {
+  dateRange: DateRange
+  categories: Category[]
+  availableCurrencies: string[]
+  filteredExpenses: Expense[]
+  lineChartData: LineChartDataItem[]
+  categoryBreakdown: PieChartDataItem[]
+  paymentMethodBreakdown: PaymentMethodChartDataItem[]
+  totalSpending: number
+  averageDaily: number
+  highestCategory: { category: string; amount: number } | null
+  highestDay: { date: string; amount: number } | null
+}
+
+export function buildAnalyticsQueryResult(input: {
+  expenses: Expense[]
+  settings: SyncedSettings | null
+  filters: FilterState
+}): AnalyticsQueryResult {
+  const { expenses, settings, filters } = input
+  const categories = settings?.categories?.length ? settings.categories : DEFAULT_CATEGORIES
+  const dateRange = getDateRangeForFilters(filters.timeWindow, filters.selectedMonth, expenses)
+  const groupedByCurrency = groupExpensesByCurrency(expenses, settings?.defaultCurrency || 'INR')
+
+  const availableCurrencies = Array.from(groupedByCurrency.keys()).sort()
+  const selectedCurrency =
+    filters.selectedCurrency && groupedByCurrency.has(filters.selectedCurrency)
+      ? filters.selectedCurrency
+      : availableCurrencies[0] || settings?.defaultCurrency || 'INR'
+
+  const sourceExpenses = groupedByCurrency.get(selectedCurrency) ?? []
+  const filteredExpenses = sourceExpenses.filter((expense) => {
+    const inRange =
+      expense.date >= dateRange.start.toISOString() && expense.date <= dateRange.end.toISOString()
+    if (!inRange) return false
+
+    if (
+      filters.selectedCategories.length &&
+      !filters.selectedCategories.includes(expense.category)
+    ) {
+      return false
+    }
+
+    if (
+      filters.selectedPaymentMethods.length &&
+      !filters.selectedPaymentMethods.includes(expense.paymentMethod?.type ?? 'Other')
+    ) {
+      return false
+    }
+
+    return true
+  })
+
+  const categoryColorMap = Object.fromEntries(
+    categories.map((category) => [category.label, category.color]),
+  )
+  const daysInPeriod = Math.max(1, differenceInCalendarDays(dateRange.end, dateRange.start) + 1)
+  const statistics = calculateStatistics(filteredExpenses, daysInPeriod)
+
+  return {
+    dateRange,
+    categories,
+    availableCurrencies,
+    filteredExpenses,
+    lineChartData: aggregateByDay(filteredExpenses, dateRange, selectedCurrency),
+    categoryBreakdown: aggregateByCategory(filteredExpenses, categoryColorMap),
+    paymentMethodBreakdown: aggregateByPaymentMethod(filteredExpenses),
+    totalSpending: statistics.totalSpending,
+    averageDaily: statistics.averageDaily,
+    highestCategory: statistics.highestCategory,
+    highestDay: statistics.highestDay,
+  }
+}
