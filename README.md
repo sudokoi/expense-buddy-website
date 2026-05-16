@@ -72,7 +72,7 @@ Local development usually uses:
 APP_ORIGIN=http://localhost:3000
 ```
 
-Node.js version is pinned in `.node-version` and reused by local tooling and GitHub Actions. pnpm is resolved through Corepack.
+Node.js version is pinned in `.node-version`. The pnpm version is declared in `package.json` via `packageManager`.
 
 ## GitHub App Setup
 
@@ -192,7 +192,7 @@ The workflow executes:
 
 It uses the Node.js version declared in `.node-version` instead of hardcoding a version in the workflow.
 
-pnpm is enabled through Corepack in CI, so the workflow does not hardcode a pnpm action version.
+CI installs pnpm from the repository's `packageManager` declaration before enabling pnpm cache support in `actions/setup-node`.
 
 ## Notes
 
