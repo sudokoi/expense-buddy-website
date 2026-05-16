@@ -1,6 +1,7 @@
 {
   "name": "expense-buddy-website",
   "private": true,
+  "packageManager": "pnpm@11.0.9",
   "type": "module",
   "imports": {
     "#/*": "./src/*"
