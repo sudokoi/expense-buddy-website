@@ -108,6 +108,7 @@ export function isValidAnalyticsViewDefinition(
     typeof candidate.description === 'string' &&
     typeof candidate.accentColor === 'string' &&
     Array.isArray(candidate.layers) &&
+    candidate.layers.length > 0 &&
     candidate.layers.every((layer) => {
       if (!layer || typeof layer !== 'object') return false
 

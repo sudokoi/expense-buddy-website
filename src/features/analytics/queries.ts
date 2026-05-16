@@ -31,6 +31,7 @@ export interface AnalyticsQueryResult {
   dateRange: DateRange
   categories: Category[]
   availableCurrencies: string[]
+  selectedCurrency: string
   filteredExpenses: Expense[]
   lineChartData: LineChartDataItem[]
   categoryBreakdown: PieChartDataItem[]
@@ -103,6 +104,7 @@ export function buildAnalyticsQueryResult(input: {
     dateRange,
     categories,
     availableCurrencies,
+    selectedCurrency,
     filteredExpenses,
     lineChartData: aggregateByDay(
       filteredExpenses,

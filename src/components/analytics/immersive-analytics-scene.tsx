@@ -9,7 +9,26 @@ import { AdditiveBlending } from 'three'
 import type { AnalyticsSceneData } from '@/features/analytics/scene-data'
 import type { AnalyticsViewLayer } from '@/features/dashboards/schema'
 
-function HeroOrb({ intensity }: { intensity: number }) {
+function hexToRgbTriplet(hex: string) {
+  const normalized = hex.trim().replace('#', '')
+  const expanded =
+    normalized.length === 3
+      ? normalized
+          .split('')
+          .map((value) => value + value)
+          .join('')
+      : normalized
+
+  if (!/^[0-9a-fA-F]{6}$/.test(expanded)) return { r: 255, g: 145, b: 164 }
+
+  return {
+    r: Number.parseInt(expanded.slice(0, 2), 16),
+    g: Number.parseInt(expanded.slice(2, 4), 16),
+    b: Number.parseInt(expanded.slice(4, 6), 16),
+  }
+}
+
+function HeroOrb({ intensity, color }: { intensity: number; color: string }) {
   const group = useRef<Group>(null)
 
   useFrame((state) => {
@@ -23,8 +42,8 @@ function HeroOrb({ intensity }: { intensity: number }) {
     <group ref={group}>
       <Sphere args={[0.65, 48, 48]}>
         <meshStandardMaterial
-          color="#ff91a4"
-          emissive="#ff91a4"
+          color={color}
+          emissive={color}
           emissiveIntensity={1.2}
           transparent
           opacity={0.72}
@@ -140,7 +159,9 @@ export function ImmersiveAnalyticsScene({
   activeLayer: AnalyticsViewLayer
   highlightedSeriesId: string | null
 }) {
+  const { r, g, b } = hexToRgbTriplet(data.view.accentColor)
   const categoryActive = activeLayer.dimension === 'category'
+  const showHeroLayer = data.view.layers.some((layer) => layer.dimension === 'overview')
   const showPaymentLayer = data.view.layers.some((layer) => layer.dimension === 'payment_method')
   const showCategoryLayer = data.view.layers.some((layer) => layer.dimension === 'category')
   const heroIntensity = Math.min(1, data.heroValue / Math.max(data.maxLineValue * 20, 1))
@@ -152,14 +173,19 @@ export function ImmersiveAnalyticsScene({
       gl={{ antialias: true, alpha: true }}
     >
       <color attach="background" args={['#130f1f']} />
-      <fog attach="fog" args={['#130f1f', 5, 16]} />
+      <fog attach="fog" args={[`rgb(${r} ${g} ${b})`, 7, 19]} />
       <ambientLight intensity={1.05} />
       <directionalLight position={[2.5, 4, 4]} intensity={1.2} color="#fff8f0" />
-      <pointLight position={[-2.8, 1.8, 2.2]} intensity={38} distance={10} color="#ff91a4" />
+      <pointLight
+        position={[-2.8, 1.8, 2.2]}
+        intensity={38}
+        distance={10}
+        color={data.view.accentColor}
+      />
       <pointLight position={[3.5, -1.6, 1]} intensity={28} distance={10} color="#98fb98" />
       <pointLight position={[0, 3.8, -0.8]} intensity={20} distance={9} color="#d4c4fb" />
       <SceneBackdrop />
-      <HeroOrb intensity={heroIntensity} />
+      {showHeroLayer ? <HeroOrb intensity={heroIntensity} color={data.view.accentColor} /> : null}
       {showPaymentLayer ? (
         <PaymentModeLayer data={data} highlightedSeriesId={highlightedSeriesId} />
       ) : null}

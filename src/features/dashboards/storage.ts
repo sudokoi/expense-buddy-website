@@ -22,16 +22,31 @@ function parseStoredViews(raw: string | null): StoredAnalyticsViewDefinition[] {
 export const dashboardStorage = {
   async loadDashboardConfigs(): Promise<StoredAnalyticsViewDefinition[]> {
     if (!isBrowser()) return []
-    return parseStoredViews(window.localStorage.getItem(STORAGE_KEY))
+
+    try {
+      return parseStoredViews(window.localStorage.getItem(STORAGE_KEY))
+    } catch {
+      return []
+    }
   },
 
   async saveDashboardConfigs(dashboards: StoredAnalyticsViewDefinition[]): Promise<void> {
     if (!isBrowser()) return
-    window.localStorage.setItem(STORAGE_KEY, JSON.stringify(dashboards))
+
+    try {
+      window.localStorage.setItem(STORAGE_KEY, JSON.stringify(dashboards))
+    } catch {
+      throw new Error('Unable to save dashboard views in this browser.')
+    }
   },
 
   async resetDashboardConfigs(): Promise<void> {
     if (!isBrowser()) return
-    window.localStorage.removeItem(STORAGE_KEY)
+
+    try {
+      window.localStorage.removeItem(STORAGE_KEY)
+    } catch {
+      throw new Error('Unable to clear dashboard views in this browser.')
+    }
   },
 }

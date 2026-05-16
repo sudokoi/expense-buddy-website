@@ -54,6 +54,7 @@ export function ImmersiveAnalyticsPage({
   const [draftAccentColor, setDraftAccentColor] = useState('#ff91a4')
   const [primaryLayerId, setPrimaryLayerId] = useState('payment-method-line-field')
   const [secondaryLayerId, setSecondaryLayerId] = useState('category-radial-clusters')
+  const [saveError, setSaveError] = useState<string | null>(null)
 
   useEffect(() => {
     if (!mounted) return
@@ -65,14 +66,23 @@ export function ImmersiveAnalyticsPage({
 
   const views = useMemo(() => [...analyticsViewPresets, ...storedViews], [storedViews])
   const activeView = views.find((view) => view.id === activeViewId) ?? analyticsViewPresets[0]
-  const activeLayer =
-    activeView.layers.find((layer) => layer.id === activeLayerId) ?? activeView.layers[0]
+  const fallbackLayer = activeView.layers[0] ?? analyticsLayerCatalog[0]
+  const activeLayer = activeView.layers.find((layer) => layer.id === activeLayerId) ?? fallbackLayer
   const sceneData = useMemo(
     () => buildAnalyticsSceneData({ analytics, view: activeView }),
     [activeView, analytics],
   )
-  const currency = analytics.availableCurrencies[0] || 'INR'
+  const currency = analytics.selectedCurrency
   const currencySymbol = getCurrencySymbol(currency)
+  const supportsPaymentFocus = activeView.layers.some(
+    (layer) => layer.dimension === 'payment_method',
+  )
+
+  useEffect(() => {
+    if (!supportsPaymentFocus) {
+      setSelectedPaymentMethod(null)
+    }
+  }, [supportsPaymentFocus])
 
   async function saveCustomView() {
     const layers = [primaryLayerId, secondaryLayerId]
@@ -94,10 +104,16 @@ export function ImmersiveAnalyticsPage({
     }
 
     const nextViews = [...storedViews, nextView]
-    setStoredViews(nextViews)
-    setActiveViewId(nextView.id)
-    setActiveLayerId(nextView.layers[0]?.id ?? null)
-    await dashboardStorage.saveDashboardConfigs(nextViews)
+
+    try {
+      await dashboardStorage.saveDashboardConfigs(nextViews)
+      setStoredViews(nextViews)
+      setActiveViewId(nextView.id)
+      setActiveLayerId(nextView.layers[0]?.id ?? null)
+      setSaveError(null)
+    } catch (error) {
+      setSaveError(error instanceof Error ? error.message : 'Unable to save dashboard views.')
+    }
   }
 
   return (
@@ -307,55 +323,58 @@ export function ImmersiveAnalyticsPage({
                   Save view
                 </Button>
               </div>
+              {saveError ? <p className="text-sm text-[#ffb6c1]">{saveError}</p> : null}
             </CardContent>
           </Card>
 
-          <Card className="rounded-[2rem] border-white/12 bg-white/8 text-white shadow-[0_24px_80px_rgba(7,4,16,0.3)] backdrop-blur-xl">
-            <CardHeader>
-              <CardTitle className="text-white">Payment focus</CardTitle>
-              <CardDescription className="text-white/68">
-                Narrow the line field to a single payment method without changing the view preset.
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-2">
-              <button
-                type="button"
-                className={
-                  selectedPaymentMethod === null
-                    ? 'flex w-full items-center justify-between rounded-[1.2rem] border border-white/20 bg-white/14 px-3 py-2 text-left text-sm text-white'
-                    : 'flex w-full items-center justify-between rounded-[1.2rem] border border-white/8 bg-black/10 px-3 py-2 text-left text-sm text-white/72 hover:bg-white/10 hover:text-white'
-                }
-                onClick={() => setSelectedPaymentMethod(null)}
-              >
-                <span>Show all payment modes</span>
-                <ArrowRightIcon className="size-4" />
-              </button>
-              {analytics.paymentMethodTrendSeries.map((series) => (
+          {supportsPaymentFocus ? (
+            <Card className="rounded-[2rem] border-white/12 bg-white/8 text-white shadow-[0_24px_80px_rgba(7,4,16,0.3)] backdrop-blur-xl">
+              <CardHeader>
+                <CardTitle className="text-white">Payment focus</CardTitle>
+                <CardDescription className="text-white/68">
+                  Narrow the line field to a single payment method without changing the view preset.
+                </CardDescription>
+              </CardHeader>
+              <CardContent className="space-y-2">
                 <button
-                  key={series.paymentMethodType}
                   type="button"
                   className={
-                    selectedPaymentMethod === series.paymentMethodType
+                    selectedPaymentMethod === null
                       ? 'flex w-full items-center justify-between rounded-[1.2rem] border border-white/20 bg-white/14 px-3 py-2 text-left text-sm text-white'
                       : 'flex w-full items-center justify-between rounded-[1.2rem] border border-white/8 bg-black/10 px-3 py-2 text-left text-sm text-white/72 hover:bg-white/10 hover:text-white'
                   }
-                  onClick={() => setSelectedPaymentMethod(series.paymentMethodType)}
+                  onClick={() => setSelectedPaymentMethod(null)}
                 >
-                  <span className="flex items-center gap-2">
-                    <span
-                      className="size-2.5 rounded-full"
-                      style={{ backgroundColor: series.color }}
-                    />
-                    {series.text}
-                  </span>
-                  <span>
-                    {currencySymbol}
-                    {series.value.toFixed(0)}
-                  </span>
+                  <span>Show all payment modes</span>
+                  <ArrowRightIcon className="size-4" />
                 </button>
-              ))}
-            </CardContent>
-          </Card>
+                {analytics.paymentMethodTrendSeries.map((series) => (
+                  <button
+                    key={series.paymentMethodType}
+                    type="button"
+                    className={
+                      selectedPaymentMethod === series.paymentMethodType
+                        ? 'flex w-full items-center justify-between rounded-[1.2rem] border border-white/20 bg-white/14 px-3 py-2 text-left text-sm text-white'
+                        : 'flex w-full items-center justify-between rounded-[1.2rem] border border-white/8 bg-black/10 px-3 py-2 text-left text-sm text-white/72 hover:bg-white/10 hover:text-white'
+                    }
+                    onClick={() => setSelectedPaymentMethod(series.paymentMethodType)}
+                  >
+                    <span className="flex items-center gap-2">
+                      <span
+                        className="size-2.5 rounded-full"
+                        style={{ backgroundColor: series.color }}
+                      />
+                      {series.text}
+                    </span>
+                    <span>
+                      {currencySymbol}
+                      {series.value.toFixed(0)}
+                    </span>
+                  </button>
+                ))}
+              </CardContent>
+            </Card>
+          ) : null}
         </div>
       </section>
     </div>
