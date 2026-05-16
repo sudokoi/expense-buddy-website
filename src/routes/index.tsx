@@ -1,7 +1,8 @@
+import { Suspense, lazy } from 'react'
 import { ArrowRightIcon } from 'lucide-react'
 import { createFileRoute } from '@tanstack/react-router'
 
-import { AppShell } from '@/components/app-shell'
+import { ImmersiveShell } from '@/components/immersive-shell'
 import { getOptionalConnectedSession } from '@/features/auth/github.functions'
 import { getAuthErrorMessage } from '@/features/auth/errors'
 import { Button } from '@/components/ui/button'
@@ -10,6 +11,9 @@ import { siteConfig } from '@/lib/site'
 
 const PLAY_STORE_BADGE_URL =
   'https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png'
+const HomeScene = lazy(() =>
+  import('@/components/home/home-scene').then((module) => ({ default: module.HomeScene })),
+)
 
 export const Route = createFileRoute('/')({
   validateSearch: (search) => ({
@@ -28,9 +32,15 @@ function Home() {
   const { session } = Route.useLoaderData()
 
   return (
-    <AppShell
-      hideNavigation
-      className="flex min-h-screen max-w-4xl items-center justify-center py-12"
+    <ImmersiveShell
+      surface="light"
+      scene={
+        <Suspense fallback={null}>
+          <HomeScene />
+        </Suspense>
+      }
+      sessionLabel={session ? `Connected as ${session.userLogin}` : null}
+      contentClassName="max-w-4xl items-center justify-center py-12 home-shell-content"
     >
       {authErrorMessage ? (
         <div className="absolute top-6 left-1/2 w-full max-w-xl -translate-x-1/2 px-6">
@@ -98,6 +108,6 @@ function Home() {
           <p className="text-sm text-muted-foreground">Connected as `{session.userLogin}`.</p>
         ) : null}
       </section>
-    </AppShell>
+    </ImmersiveShell>
   )
 }
