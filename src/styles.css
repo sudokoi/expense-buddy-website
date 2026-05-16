@@ -47,6 +47,12 @@
   --input: #fffaf5;
   --ring: #ff91a4;
   --radius: 1rem;
+  --ambient-top: rgb(255 182 193 / 0.16);
+  --ambient-bottom: rgb(152 251 152 / 0.12);
+  --shell-scene-opacity: 0.3;
+  --immersive-nav-bg: rgb(255 250 245 / 0.72);
+  --immersive-nav-border: rgb(230 230 250 / 0.78);
+  --immersive-nav-shadow: 0 24px 80px rgb(74 68 88 / 0.12);
 }
 
 .dark {
@@ -150,9 +156,132 @@ body {
   background: var(--background);
   color: var(--foreground);
   font-family: var(--font-sans);
+  transition:
+    background-color 420ms ease,
+    color 420ms ease,
+    background-image 420ms ease;
   background-image:
-    radial-gradient(circle at top, rgb(255 182 193 / 0.16), transparent 30%),
-    radial-gradient(circle at bottom right, rgb(152 251 152 / 0.12), transparent 24%);
+    radial-gradient(circle at top, var(--ambient-top), transparent 30%),
+    radial-gradient(circle at bottom right, var(--ambient-bottom), transparent 24%);
+}
+
+.immersive-shell-dark {
+  --background: #120f1d;
+  --foreground: #f4edf8;
+  --card: rgb(37 32 51 / 0.8);
+  --card-foreground: #f4edf8;
+  --popover: rgb(37 32 51 / 0.94);
+  --popover-foreground: #f4edf8;
+  --secondary: rgb(56 44 83 / 0.78);
+  --secondary-foreground: #f4edf8;
+  --muted: rgb(37 32 51 / 0.86);
+  --muted-foreground: #d1c3df;
+  --border: rgb(135 113 174 / 0.22);
+  --input: rgb(37 32 51 / 0.8);
+  --ambient-top: rgb(255 145 164 / 0.24);
+  --ambient-bottom: rgb(152 251 152 / 0.14);
+  --shell-scene-opacity: 0.82;
+  --immersive-nav-bg: rgb(21 17 33 / 0.55);
+  --immersive-nav-border: rgb(255 255 255 / 0.12);
+  --immersive-nav-shadow: 0 24px 90px rgb(0 0 0 / 0.28);
+}
+
+.immersive-shell {
+  position: relative;
+  overflow: clip;
+}
+
+.immersive-shell__ambient {
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top left, rgb(255 182 193 / 0.2), transparent 32%),
+    radial-gradient(circle at 80% 20%, rgb(230 230 250 / 0.44), transparent 24%),
+    radial-gradient(circle at bottom right, rgb(152 251 152 / 0.18), transparent 26%);
+  pointer-events: none;
+  transition:
+    opacity 420ms ease,
+    background 420ms ease;
+}
+
+.immersive-shell-dark .immersive-shell__ambient {
+  background:
+    radial-gradient(circle at top left, rgb(255 145 164 / 0.24), transparent 34%),
+    radial-gradient(circle at 80% 20%, rgb(212 196 251 / 0.16), transparent 28%),
+    radial-gradient(circle at bottom right, rgb(152 251 152 / 0.12), transparent 30%);
+}
+
+.immersive-shell__scene {
+  position: absolute;
+  inset: 0;
+  opacity: var(--shell-scene-opacity);
+  transition: opacity 420ms ease;
+}
+
+.immersive-shell__scene canvas {
+  width: 100% !important;
+  height: 100% !important;
+}
+
+.home-shell-content {
+  position: relative;
+  isolation: isolate;
+}
+
+.home-shell-content::before {
+  content: '';
+  position: absolute;
+  left: 50%;
+  top: 4.75rem;
+  width: min(78vw, 68rem);
+  height: min(56vw, 38rem);
+  transform: translateX(-50%);
+  border-radius: 50%;
+  background: radial-gradient(circle, rgb(255 255 255 / 0.12), rgb(255 255 255 / 0));
+  filter: blur(10px);
+  pointer-events: none;
+  z-index: -1;
+}
+
+.immersive-nav {
+  border: 1px solid var(--immersive-nav-border);
+  background: var(--immersive-nav-bg);
+  box-shadow: var(--immersive-nav-shadow);
+  backdrop-filter: blur(22px);
+  transition:
+    background-color 420ms ease,
+    border-color 420ms ease,
+    box-shadow 420ms ease;
+}
+
+.immersive-panel::before {
+  content: '';
+  position: absolute;
+  inset: 0;
+  background:
+    radial-gradient(circle at top left, rgb(255 145 164 / 0.22), transparent 22%),
+    radial-gradient(circle at bottom right, rgb(152 251 152 / 0.12), transparent 22%);
+  pointer-events: none;
+}
+
+.immersive-overlay-card {
+  box-shadow: inset 0 1px 0 rgb(255 255 255 / 0.06);
+}
+
+@media (max-width: 767px) {
+  .immersive-shell__scene {
+    opacity: calc(var(--shell-scene-opacity) * 0.8);
+  }
+
+  .home-shell-content::before {
+    top: 6rem;
+    width: min(96vw, 32rem);
+    height: min(72vw, 24rem);
+  }
+
+  .immersive-nav {
+    border-radius: 1.5rem;
+  }
 }
 
 a {

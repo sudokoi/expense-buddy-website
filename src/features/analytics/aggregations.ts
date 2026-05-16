@@ -32,6 +32,14 @@ export interface LineChartDataItem {
   dataPointText?: string
 }
 
+export interface PaymentMethodTrendSeries {
+  value: number
+  color: string
+  text: string
+  paymentMethodType: PaymentMethodType | 'Other'
+  points: LineChartDataItem[]
+}
+
 export function aggregateByCategory(
   expenses: Expense[],
   categoryColors?: CategoryColorMap,
@@ -109,4 +117,48 @@ export function aggregateByDay(
       dataPointText: value > 0 ? `${symbol}${value.toFixed(0)}` : undefined,
     }
   })
+}
+
+export function aggregatePaymentMethodTrendSeries(
+  expenses: Expense[],
+  dateRange: DateRange,
+  currencyCode: string = 'INR',
+  timeZone?: string,
+): PaymentMethodTrendSeries[] {
+  const days = eachDayOfInterval({ start: dateRange.start, end: dateRange.end })
+  const symbol = getCurrencySymbol(currencyCode)
+  const totalsByMethod = new Map<PaymentMethodType | 'Other', Map<string, number>>()
+
+  for (const expense of expenses) {
+    const method = expense.paymentMethod?.type ?? 'Other'
+    const totals = totalsByMethod.get(method) ?? new Map<string, number>()
+    const dayKey = getLocalDayKey(expense.date, timeZone)
+    totals.set(dayKey, (totals.get(dayKey) ?? 0) + Math.abs(expense.amount))
+    totalsByMethod.set(method, totals)
+  }
+
+  return Array.from(totalsByMethod.entries())
+    .map(([paymentMethodType, totals]) => {
+      const points = days.map((day) => {
+        const dayKey = format(day, 'yyyy-MM-dd')
+        const value = totals.get(dayKey) ?? 0
+
+        return {
+          value,
+          date: dayKey,
+          label: format(day, 'MMM d'),
+          dataPointText: value > 0 ? `${symbol}${value.toFixed(0)}` : undefined,
+        }
+      })
+
+      return {
+        value: points.reduce((sum, point) => sum + point.value, 0),
+        color: PAYMENT_METHOD_COLORS[paymentMethodType],
+        text: paymentMethodType,
+        paymentMethodType,
+        points,
+      }
+    })
+    .filter((series) => series.value > 0)
+    .sort((a, b) => b.value - a.value)
 }

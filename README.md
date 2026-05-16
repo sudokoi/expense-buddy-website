@@ -4,6 +4,8 @@ Expense Buddy Web is a read-only web companion for the Expense Buddy Android app
 
 It reads already-synced expense data from a user-selected GitHub repository and renders a lightweight analytics dashboard. The web app does not create, edit, or delete expense data.
 
+GitHub Actions runs the full verification suite for every pull request and every push to `main`.
+
 ## Current Scope
 
 - Public landing page for unauthenticated users
@@ -70,6 +72,8 @@ Local development usually uses:
 APP_ORIGIN=http://localhost:3000
 ```
 
+Node.js version is pinned in `.node-version`. The pnpm version is declared in `package.json` via `packageManager`.
+
 ## GitHub App Setup
 
 Configure the GitHub App to support the current flow:
@@ -114,8 +118,19 @@ pnpm build
 pnpm preview
 pnpm test
 pnpm lint
+pnpm typecheck
 pnpm format
 pnpm format:check
+```
+
+Run the full local verification flow with:
+
+```bash
+pnpm format:check
+pnpm lint
+pnpm typecheck
+pnpm test
+pnpm build
 ```
 
 ## Project Structure
@@ -149,12 +164,35 @@ Unit coverage currently focuses on small, stable domain logic:
 
 - auth error mapping
 - analytics filter parsing
+- analytics query currency selection
+- custom analytics view validation
 
 Run tests with:
 
 ```bash
 pnpm test
 ```
+
+## Continuous Integration
+
+The repository runs one GitHub Actions checks workflow at a time with repository-wide concurrency.
+
+It runs on:
+
+- every pull request
+- every push to `main`
+
+The workflow executes:
+
+- `pnpm format:check`
+- `pnpm lint`
+- `pnpm typecheck`
+- `pnpm test`
+- `pnpm build`
+
+It uses the Node.js version declared in `.node-version` instead of hardcoding a version in the workflow.
+
+CI installs pnpm from the repository's `packageManager` declaration before enabling pnpm cache support in `actions/setup-node`.
 
 ## Notes
 

@@ -4,6 +4,7 @@ import { DEFAULT_CATEGORIES } from '@/constants/default-categories'
 import {
   aggregateByCategory,
   aggregateByDay,
+  aggregatePaymentMethodTrendSeries,
   aggregateByPaymentMethod,
 } from '@/features/analytics/aggregations'
 import { groupExpensesByCurrency } from '@/features/analytics/currency'
@@ -18,6 +19,7 @@ import type {
   DateRange,
   FilterState,
   LineChartDataItem,
+  PaymentMethodTrendSeries,
   PaymentMethodChartDataItem,
   PieChartDataItem,
 } from '@/types/analytics'
@@ -29,10 +31,12 @@ export interface AnalyticsQueryResult {
   dateRange: DateRange
   categories: Category[]
   availableCurrencies: string[]
+  selectedCurrency: string
   filteredExpenses: Expense[]
   lineChartData: LineChartDataItem[]
   categoryBreakdown: PieChartDataItem[]
   paymentMethodBreakdown: PaymentMethodChartDataItem[]
+  paymentMethodTrendSeries: PaymentMethodTrendSeries[]
   totalSpending: number
   averageDaily: number
   highestCategory: { category: string; amount: number } | null
@@ -100,6 +104,7 @@ export function buildAnalyticsQueryResult(input: {
     dateRange,
     categories,
     availableCurrencies,
+    selectedCurrency,
     filteredExpenses,
     lineChartData: aggregateByDay(
       filteredExpenses,
@@ -109,6 +114,12 @@ export function buildAnalyticsQueryResult(input: {
     ),
     categoryBreakdown: aggregateByCategory(filteredExpenses, categoryColorMap),
     paymentMethodBreakdown: aggregateByPaymentMethod(filteredExpenses),
+    paymentMethodTrendSeries: aggregatePaymentMethodTrendSeries(
+      filteredExpenses,
+      dateRange,
+      selectedCurrency,
+      timeZone || undefined,
+    ),
     totalSpending: statistics.totalSpending,
     averageDaily: statistics.averageDaily,
     highestCategory: statistics.highestCategory,

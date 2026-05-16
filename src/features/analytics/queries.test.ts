@@ -78,4 +78,27 @@ describe('buildAnalyticsQueryResult', () => {
       amount: 150,
     })
   })
+
+  it('returns the resolved selected currency used for analytics', () => {
+    const result = buildAnalyticsQueryResult({
+      expenses: [
+        makeExpense({ id: 'expense-inr', amount: 100, currency: 'INR' }),
+        makeExpense({
+          id: 'expense-usd',
+          amount: 25,
+          currency: 'USD',
+          date: '2026-01-15T12:00:00.000Z',
+          createdAt: '2026-01-15T12:00:00.000Z',
+          updatedAt: '2026-01-15T12:00:00.000Z',
+        }),
+      ],
+      settings: { defaultCurrency: 'INR' },
+      filters: { ...baseFilters, selectedCurrency: 'USD', selectedMonth: '2026-01' },
+      timeZone: 'Asia/Kolkata',
+    })
+
+    expect(result.selectedCurrency).toBe('USD')
+    expect(result.filteredExpenses).toHaveLength(1)
+    expect(result.totalSpending).toBe(25)
+  })
 })

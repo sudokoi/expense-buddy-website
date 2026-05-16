@@ -29,6 +29,14 @@ export interface PaymentMethodChartDataItem {
   paymentMethodType: string
 }
 
+export interface PaymentMethodTrendSeries {
+  value: number
+  color: string
+  text: string
+  paymentMethodType: string
+  points: LineChartDataItem[]
+}
+
 export interface LineChartDataItem {
   value: number
   date: string
