@@ -99,16 +99,58 @@ export function PaymentCategoryRadarChart({
   const centerY = height / 2 + 10
   const activeMethod = selectedPaymentMethod ?? data.series.at(0)?.id ?? null
   const activeSeries = data.series.find((series) => series.id === activeMethod) ?? data.series.at(0)
-  const radarRadius = 150
+  const [zoomLevel, setZoomLevel] = useState(1)
+  const radarRadius = 150 * zoomLevel
+
+  function updateZoom(nextZoom: number) {
+    setZoomLevel(Math.min(2.4, Math.max(0.75, Number(nextZoom.toFixed(2)))))
+  }
+
+  function handleWheel(event: React.WheelEvent<SVGSVGElement>) {
+    event.preventDefault()
+    updateZoom(zoomLevel - event.deltaY * 0.0012)
+  }
 
   return (
-    <Card className="analytics-card rounded-[2rem] text-white shadow-[0_24px_72px_rgba(10,8,18,0.24)]">
+    <Card className="analytics-card rounded-[2rem] text-white shadow-[0_20px_56px_rgba(10,8,18,0.18)]">
       <CardHeader className="gap-4">
-        <div className="space-y-1">
-          <CardTitle className="text-white">Payment method radar</CardTitle>
-          <CardDescription className="text-white/68">
-            Compare how each payment method distributes across your biggest spending categories.
-          </CardDescription>
+        <div className="flex flex-col gap-4 lg:flex-row lg:items-start lg:justify-between">
+          <div className="space-y-1">
+            <CardTitle className="text-white">Payment method radar</CardTitle>
+            <CardDescription className="text-white/72">
+              Compare how each payment method distributes across your biggest spending categories.
+            </CardDescription>
+          </div>
+
+          <div className="flex items-center gap-2 self-start rounded-full border border-white/12 bg-white/8 p-1 text-sm text-white/72">
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8 rounded-full border border-white/8 bg-transparent px-3 text-white/76 hover:bg-white/10 hover:text-white"
+              onClick={() => updateZoom(zoomLevel - 0.2)}
+            >
+              -
+            </Button>
+            <span className="min-w-12 text-center text-xs font-medium tracking-[0.14em] text-white/62">
+              {Math.round(zoomLevel * 100)}%
+            </span>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8 rounded-full border border-white/8 bg-transparent px-3 text-white/76 hover:bg-white/10 hover:text-white"
+              onClick={() => updateZoom(zoomLevel + 0.2)}
+            >
+              +
+            </Button>
+            <Button
+              size="sm"
+              variant="ghost"
+              className="h-8 rounded-full border border-white/8 bg-transparent px-3 text-white/64 hover:bg-white/10 hover:text-white"
+              onClick={() => updateZoom(1)}
+            >
+              Reset
+            </Button>
+          </div>
         </div>
 
         <div className="flex flex-wrap gap-2">
@@ -118,8 +160,8 @@ export function PaymentCategoryRadarChart({
             className={cn(
               'rounded-full border px-3 text-white',
               selectedPaymentMethod === null
-                ? 'border-white/18 bg-white/14 hover:bg-white/18'
-                : 'border-white/8 bg-white/6 text-white/72 hover:bg-white/10 hover:text-white',
+                ? 'border-white/16 bg-white/12 hover:bg-white/15'
+                : 'border-white/10 bg-white/7 text-white/76 hover:bg-white/11 hover:text-white',
             )}
             onClick={() => onSelectPaymentMethod(null)}
           >
@@ -134,8 +176,8 @@ export function PaymentCategoryRadarChart({
               className={cn(
                 'rounded-full border px-3 text-white',
                 selectedPaymentMethod === series.id
-                  ? 'border-white/18 bg-white/14 hover:bg-white/18'
-                  : 'border-white/8 bg-white/6 text-white/72 hover:bg-white/10 hover:text-white',
+                  ? 'border-white/16 bg-white/12 hover:bg-white/15'
+                  : 'border-white/10 bg-white/7 text-white/76 hover:bg-white/11 hover:text-white',
               )}
               onClick={() => onSelectPaymentMethod(series.id)}
             >
@@ -150,7 +192,11 @@ export function PaymentCategoryRadarChart({
       </CardHeader>
 
       <CardContent className="grid gap-6 lg:grid-cols-[minmax(0,1fr)_15rem] lg:items-center">
-        <svg viewBox={`0 0 ${width} ${height}`} className="analytics-svg w-full overflow-visible">
+        <svg
+          viewBox={`0 0 ${width} ${height}`}
+          className="analytics-svg w-full overflow-visible"
+          onWheel={handleWheel}
+        >
           <g transform={`translate(${centerX}, ${centerY})`}>
             {data.rings.map((ring) => {
               const ringRadius = data.peakValue > 0 ? (ring / data.peakValue) * radarRadius : 0
@@ -247,7 +293,7 @@ export function PaymentCategoryRadarChart({
         </svg>
 
         <div className="space-y-3">
-          <div className="rounded-[1.25rem] border border-white/8 bg-white/6 px-4 py-4">
+          <div className="rounded-[1.25rem] border border-white/10 bg-white/8 px-4 py-4">
             <div className="text-xs uppercase tracking-[0.18em] text-white/48">Active profile</div>
             <div className="mt-2 text-lg font-semibold text-white">
               {activeSeries?.label ?? 'All methods'}
@@ -273,7 +319,7 @@ export function PaymentCategoryRadarChart({
                   'flex w-full items-center justify-between rounded-[1.2rem] border px-3 py-3 text-left transition-colors',
                   isSelected
                     ? 'border-white/16 bg-white/12'
-                    : 'border-white/8 bg-white/6 hover:bg-white/10',
+                    : 'border-white/10 bg-white/7 hover:bg-white/11',
                 )}
                 onClick={() =>
                   onSelectPaymentMethod(series.id === selectedPaymentMethod ? null : series.id)
@@ -323,10 +369,10 @@ export function CategoryBreakdownChart({
   const tickValues = xScale.ticks(4)
 
   return (
-    <Card className="analytics-card rounded-[2rem] text-white shadow-[0_20px_60px_rgba(10,8,18,0.2)]">
+    <Card className="analytics-card rounded-[2rem] text-white shadow-[0_18px_52px_rgba(10,8,18,0.16)]">
       <CardHeader>
         <CardTitle className="text-white">Category balance</CardTitle>
-        <CardDescription className="text-white/68">
+        <CardDescription className="text-white/72">
           Sorted bars make the strongest spending categories easy to compare.
         </CardDescription>
       </CardHeader>
@@ -412,10 +458,10 @@ export function PaymentShareChart({
   const activeItem = items.find((item) => item.paymentMethodType === activeMethod) ?? items.at(0)
 
   return (
-    <Card className="analytics-card rounded-[2rem] text-white shadow-[0_20px_60px_rgba(10,8,18,0.2)]">
+    <Card className="analytics-card rounded-[2rem] text-white shadow-[0_18px_52px_rgba(10,8,18,0.16)]">
       <CardHeader>
         <CardTitle className="text-white">Payment share</CardTitle>
-        <CardDescription className="text-white/68">
+        <CardDescription className="text-white/72">
           A calmer summary of where the spending volume is flowing.
         </CardDescription>
       </CardHeader>
@@ -477,7 +523,7 @@ export function PaymentShareChart({
                   'flex w-full items-center justify-between rounded-[1.2rem] border px-3 py-3 text-left transition-colors',
                   isActive
                     ? 'border-white/16 bg-white/12'
-                    : 'border-white/8 bg-white/6 hover:bg-white/10',
+                    : 'border-white/10 bg-white/7 hover:bg-white/11',
                 )}
                 onClick={() =>
                   onSelectPaymentMethod(
@@ -507,7 +553,7 @@ export function PaymentShareChart({
           })}
         </div>
 
-        <div className="rounded-[1.25rem] border border-white/8 bg-white/5 px-4 py-3 text-sm text-white/72">
+        <div className="rounded-[1.25rem] border border-white/10 bg-white/7 px-4 py-3 text-sm text-white/74">
           Total tracked volume:{' '}
           <span className="font-medium text-white">{formatCurrencyValue(total, currency)}</span>
         </div>
@@ -546,15 +592,15 @@ export function DailySpendChart({
     hoveredIndex === null ? strongestPoint : (points[hoveredIndex] ?? strongestPoint)
 
   return (
-    <Card className="analytics-card rounded-[2rem] text-white shadow-[0_20px_60px_rgba(10,8,18,0.2)]">
+    <Card className="analytics-card rounded-[2rem] text-white shadow-[0_18px_52px_rgba(10,8,18,0.16)]">
       <CardHeader>
         <CardTitle className="text-white">Daily rhythm</CardTitle>
-        <CardDescription className="text-white/68">
+        <CardDescription className="text-white/72">
           Quick scan of busy and quiet days across the current filter window.
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
-        <div className="rounded-[1.25rem] border border-white/8 bg-white/5 px-4 py-3">
+        <div className="rounded-[1.25rem] border border-white/10 bg-white/7 px-4 py-3">
           <div className="text-xs uppercase tracking-[0.18em] text-white/48">
             {hoveredIndex === null ? 'Peak day' : activePoint?.label}
           </div>

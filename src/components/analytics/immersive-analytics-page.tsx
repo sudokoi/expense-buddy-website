@@ -46,7 +46,7 @@ export function ImmersiveAnalyticsPage({
         <Card
           className={cn(
             panelClassName,
-            'analytics-hero-panel rounded-[2.25rem] shadow-[0_28px_90px_rgba(10,8,18,0.32)]',
+            'analytics-hero-panel rounded-[2.25rem] shadow-[0_24px_72px_rgba(10,8,18,0.22)]',
           )}
         >
           <CardHeader className="gap-4 sm:flex sm:flex-row sm:items-end sm:justify-between">
@@ -61,7 +61,7 @@ export function ImmersiveAnalyticsPage({
                 <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
                   Calm, high-signal analytics for your spending history.
                 </h1>
-                <p className="max-w-2xl text-sm leading-6 text-white/72 sm:text-base">
+                <p className="max-w-2xl text-sm leading-6 text-white/76 sm:text-base">
                   The main radar view highlights how payment methods distribute across your largest
                   categories, sourced from{' '}
                   <span className="font-medium text-white">{repoName}</span> on{' '}
@@ -70,15 +70,15 @@ export function ImmersiveAnalyticsPage({
               </div>
             </div>
 
-            <div className="max-w-sm rounded-[1.6rem] border border-white/10 bg-white/6 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.06)]">
-              <div className="flex items-center gap-2 text-sm text-white/62">
+            <div className="max-w-sm rounded-[1.6rem] border border-white/12 bg-white/8 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
+              <div className="flex items-center gap-2 text-sm text-white/68">
                 <SparklesIcon className="size-4" />
                 Current focus
               </div>
               <div className="mt-3 text-lg font-medium text-white">
                 {selectedPaymentMethod ?? strongestPaymentMethod?.text ?? 'All payment methods'}
               </div>
-              <p className="mt-2 text-sm leading-6 text-white/66">
+              <p className="mt-2 text-sm leading-6 text-white/72">
                 Select a payment mode from the radar legend or the share card to isolate its
                 profile.
               </p>
@@ -185,18 +185,18 @@ function MetricCard({
 }) {
   return (
     <Card
-      className={cn(panelClassName, 'rounded-[1.75rem] shadow-[0_18px_48px_rgba(8,6,18,0.18)]')}
+      className={cn(panelClassName, 'rounded-[1.75rem] shadow-[0_16px_42px_rgba(8,6,18,0.14)]')}
     >
       <CardHeader className="gap-2">
-        <CardDescription className="flex items-center gap-2 text-white/58">
-          <span className="flex size-8 items-center justify-center rounded-full border border-white/10 bg-white/8 text-[#f8f1ff]">
+        <CardDescription className="flex items-center gap-2 text-white/64">
+          <span className="flex size-8 items-center justify-center rounded-full border border-white/12 bg-white/10 text-[#f8f1ff]">
             {icon}
           </span>
           {label}
         </CardDescription>
         <CardTitle className="text-[1.7rem] leading-none text-white">{value}</CardTitle>
       </CardHeader>
-      <CardContent className="pt-0 text-sm text-white/64">{detail}</CardContent>
+      <CardContent className="pt-0 text-sm text-white/70">{detail}</CardContent>
     </Card>
   )
 }

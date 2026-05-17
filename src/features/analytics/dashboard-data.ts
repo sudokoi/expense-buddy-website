@@ -1,6 +1,7 @@
 import { max } from 'd3-array'
 import { scaleLinear } from 'd3-scale'
 
+import { resolvePaymentMethodType } from '@/features/analytics/payment-methods'
 import type { AnalyticsQueryResult } from '@/features/analytics/queries'
 
 export interface PaymentCategoryRadarAxis {
@@ -59,7 +60,7 @@ function buildPaymentCategoryRadarData(analytics: AnalyticsQueryResult): Payment
   const totalsByMethod = new Map<string, Map<string, number>>()
 
   for (const expense of analytics.filteredExpenses) {
-    const method = expense.paymentMethod?.type ?? 'Other'
+    const method = resolvePaymentMethodType(expense.paymentMethod?.type)
 
     if (!methodIds.has(method) || !axisIds.has(expense.category)) continue
 

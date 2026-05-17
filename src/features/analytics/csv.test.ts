@@ -55,4 +55,17 @@ abc123,100,INR,Food,2024-01-15,Lunch,2024-01-15T12:00:00.000Z,2024-01-15T12:05:0
     expect(imported[1].deletedAt).toBe('2025-12-24T10:52:49.469Z')
     expect(imported[2].deletedAt).toBeUndefined()
   })
+
+  it('normalizes unknown payment methods to Other', () => {
+    const csv = `id,amount,category,date,note,paymentMethodType,createdAt,updatedAt
+abc123,100,Food,2024-01-15,Lunch,Cardless,2024-01-15T12:00:00.000Z,2024-01-15T12:00:00.000Z`
+
+    const imported = importFromCSV(csv)
+
+    expect(imported[0].paymentMethod).toEqual({
+      type: 'Other',
+      identifier: undefined,
+      instrumentId: undefined,
+    })
+  })
 })

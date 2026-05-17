@@ -101,4 +101,37 @@ describe('buildAnalyticsQueryResult', () => {
     expect(result.filteredExpenses).toHaveLength(1)
     expect(result.totalSpending).toBe(25)
   })
+
+  it('groups missing payment methods under Other', () => {
+    const result = buildAnalyticsQueryResult({
+      expenses: [
+        makeExpense({
+          id: 'cash',
+          paymentMethod: { type: 'Cash' },
+          amount: 100,
+          date: '2026-01-15T12:00:00.000Z',
+          createdAt: '2026-01-15T12:00:00.000Z',
+          updatedAt: '2026-01-15T12:00:00.000Z',
+        }),
+        makeExpense({
+          id: 'missing',
+          paymentMethod: undefined,
+          amount: 50,
+          category: 'Other',
+          date: '2026-01-16T12:00:00.000Z',
+          createdAt: '2026-01-16T12:00:00.000Z',
+          updatedAt: '2026-01-16T12:00:00.000Z',
+        }),
+      ],
+      settings: { defaultCurrency: 'INR' },
+      filters: { ...baseFilters, selectedMonth: '2026-01' },
+      timeZone: 'Asia/Kolkata',
+    })
+
+    expect(result.paymentMethodBreakdown.map((item) => item.paymentMethodType)).toEqual([
+      'Cash',
+      'Other',
+    ])
+    expect(result.paymentMethodBreakdown[1]?.value).toBe(50)
+  })
 })

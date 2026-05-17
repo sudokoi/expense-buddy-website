@@ -75,4 +75,22 @@ describe('buildAnalyticsDashboardData', () => {
     expect(dashboardData.paymentCategoryRadar.series[0]?.dominantCategory).toBe('Food')
     expect(dashboardData.paymentCategoryRadar.series[1]?.dominantCategory).toBe('Health')
   })
+
+  it('includes Other when payment method is missing', () => {
+    const analytics = buildAnalyticsQueryResult({
+      expenses: [
+        makeExpense({ id: 'missing-1', category: 'Other', amount: 120, paymentMethod: undefined }),
+        makeExpense({ id: 'upi-1', category: 'Food', amount: 80, paymentMethod: { type: 'UPI' } }),
+      ],
+      settings: { defaultCurrency: 'INR' },
+      filters: baseFilters,
+      timeZone: 'Asia/Kolkata',
+    })
+
+    const dashboardData = buildAnalyticsDashboardData(analytics)
+
+    expect(dashboardData.paymentCategoryRadar.series.map((series) => series.label)).toContain(
+      'Other',
+    )
+  })
 })

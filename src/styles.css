@@ -248,9 +248,9 @@ body {
 }
 
 .analytics-card {
-  border: 1px solid rgb(255 255 255 / 0.1);
+  border: 1px solid rgb(255 255 255 / 0.12);
   background:
-    linear-gradient(180deg, rgb(255 255 255 / 0.08), rgb(255 255 255 / 0.04)), rgb(20 17 31 / 0.82);
+    linear-gradient(180deg, rgb(255 255 255 / 0.12), rgb(255 255 255 / 0.06)), rgb(45 39 61 / 0.76);
   backdrop-filter: blur(22px);
 }
 
@@ -258,9 +258,9 @@ body {
   position: relative;
   overflow: hidden;
   background:
-    radial-gradient(circle at top left, rgb(143 136 200 / 0.24), transparent 30%),
-    radial-gradient(circle at 78% 22%, rgb(122 162 142 / 0.16), transparent 28%),
-    linear-gradient(180deg, rgb(27 23 42 / 0.94), rgb(18 15 29 / 0.92));
+    radial-gradient(circle at top left, rgb(143 136 200 / 0.26), transparent 30%),
+    radial-gradient(circle at 78% 22%, rgb(122 162 142 / 0.2), transparent 28%),
+    linear-gradient(180deg, rgb(54 47 72 / 0.9), rgb(39 33 54 / 0.88));
 }
 
 .analytics-hero-panel::before {
@@ -274,12 +274,12 @@ body {
 }
 
 .analytics-axis-text {
-  fill: rgb(236 228 246 / 0.56);
+  fill: rgb(236 228 246 / 0.64);
   font-size: 12px;
 }
 
 .analytics-axis-strong {
-  fill: rgb(249 245 253 / 0.88);
+  fill: rgb(249 245 253 / 0.92);
   font-size: 13px;
   font-weight: 500;
 }
@@ -290,7 +290,7 @@ body {
 }
 
 .analytics-grid-line {
-  stroke: rgb(255 255 255 / 0.08);
+  stroke: rgb(255 255 255 / 0.11);
   stroke-width: 1;
 }
 
@@ -301,12 +301,12 @@ body {
 }
 
 .analytics-bar-track {
-  fill: rgb(255 255 255 / 0.06);
+  fill: rgb(255 255 255 / 0.08);
 }
 
 .analytics-radar-ring {
   fill: none;
-  stroke: rgb(255 255 255 / 0.1);
+  stroke: rgb(255 255 255 / 0.12);
   stroke-width: 1;
 }
 

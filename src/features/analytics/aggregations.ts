@@ -4,6 +4,7 @@ import { getCategoryColor } from '@/constants/category-colors'
 import { PAYMENT_METHOD_COLORS } from '@/constants/payment-method-colors'
 import { getCurrencySymbol } from '@/features/analytics/currency'
 import { getLocalDayKey } from '@/features/analytics/date'
+import { resolvePaymentMethodType } from '@/features/analytics/payment-methods'
 import type { DateRange } from '@/types/analytics'
 import type { Expense, PaymentMethodType } from '@/types/expense'
 
@@ -72,7 +73,7 @@ export function aggregateByPaymentMethod(expenses: Expense[]): PaymentMethodChar
   const totals = new Map<PaymentMethodType | 'Other', number>()
 
   for (const expense of expenses) {
-    const method = expense.paymentMethod?.type ?? 'Other'
+    const method = resolvePaymentMethodType(expense.paymentMethod?.type)
     totals.set(method, (totals.get(method) ?? 0) + Math.abs(expense.amount))
   }
 
@@ -130,7 +131,7 @@ export function aggregatePaymentMethodTrendSeries(
   const totalsByMethod = new Map<PaymentMethodType | 'Other', Map<string, number>>()
 
   for (const expense of expenses) {
-    const method = expense.paymentMethod?.type ?? 'Other'
+    const method = resolvePaymentMethodType(expense.paymentMethod?.type)
     const totals = totalsByMethod.get(method) ?? new Map<string, number>()
     const dayKey = getLocalDayKey(expense.date, timeZone)
     totals.set(dayKey, (totals.get(dayKey) ?? 0) + Math.abs(expense.amount))

@@ -9,6 +9,7 @@ import {
 } from '@/features/analytics/aggregations'
 import { groupExpensesByCurrency } from '@/features/analytics/currency'
 import { getLocalDayKey, getLocalMonthKey } from '@/features/analytics/date'
+import { resolvePaymentMethodType } from '@/features/analytics/payment-methods'
 import { calculateStatistics } from '@/features/analytics/statistics'
 import {
   getDateRangeForFilters,
@@ -86,7 +87,9 @@ export function buildAnalyticsQueryResult(input: {
 
     if (
       filters.selectedPaymentMethods.length &&
-      !filters.selectedPaymentMethods.includes(expense.paymentMethod?.type ?? 'Other')
+      !filters.selectedPaymentMethods.includes(
+        resolvePaymentMethodType(expense.paymentMethod?.type),
+      )
     ) {
       return false
     }
