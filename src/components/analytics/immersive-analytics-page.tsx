@@ -12,6 +12,7 @@ import {
   PaymentShareChart,
 } from '@/components/analytics/analytics-charts'
 import { CustomGraphStudio } from '@/components/analytics/custom-graph-studio'
+import { TransactionHistoryView } from '@/components/analytics/transaction-history-view'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import type { AnalyticsDashboardData } from '@/features/analytics/dashboard-data'
@@ -177,6 +178,8 @@ export function ImmersiveAnalyticsPage({
         expenses={analytics.filteredExpenses}
         timeZone={timeZone}
       />
+
+      <TransactionHistoryView currency={currency} expenses={analytics.filteredExpenses} />
     </div>
   )
 }
