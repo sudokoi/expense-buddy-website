@@ -12,8 +12,10 @@ import {
   getDefaultTransactionHistoryFilters,
   loadTransactionHistoryFilters,
   persistTransactionHistoryFilters,
-  type HistorySortOrder,
-  type TransactionHistoryFilters,
+} from '@/features/analytics/history-storage'
+import type {
+  HistorySortOrder,
+  TransactionHistoryFilters,
 } from '@/features/analytics/history-storage'
 import { resolvePaymentMethodType } from '@/features/analytics/payment-methods'
 import { cn } from '@/lib/utils'
@@ -29,14 +31,18 @@ export function TransactionHistoryView({
   const [filters, setFilters] = useState<TransactionHistoryFilters>(
     getDefaultTransactionHistoryFilters,
   )
+  const [hasLoadedFilters, setHasLoadedFilters] = useState(false)
 
   useEffect(() => {
     setFilters(loadTransactionHistoryFilters())
+    setHasLoadedFilters(true)
   }, [])
 
   useEffect(() => {
+    if (!hasLoadedFilters) return
+
     persistTransactionHistoryFilters(filters)
-  }, [filters])
+  }, [filters, hasLoadedFilters])
 
   const categories = useMemo(
     () =>

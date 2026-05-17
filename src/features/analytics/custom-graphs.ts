@@ -392,7 +392,7 @@ export function buildCustomGraphModel(
 export function graphSpecToDsl(spec: GraphSpec): string {
   if (spec.chartType === 'pivot') {
     return [
-      `graph \"${spec.title.trim() || 'Untitled graph'}\" {`,
+      `graph "${spec.title.trim() || 'Untitled graph'}" {`,
       `  type: ${spec.chartType}`,
       `  rows: ${spec.rowField ?? 'unset'}`,
       `  columns: ${spec.columnField ?? 'unset'}`,
@@ -401,7 +401,7 @@ export function graphSpecToDsl(spec: GraphSpec): string {
       `  sort: ${spec.sortBy} ${spec.sortOrder}`,
       spec.limit ? `  top: ${spec.limit}` : null,
       spec.filterField && spec.filterValue
-        ? `  where: ${spec.filterField} = \"${spec.filterValue}\"`
+        ? `  where: ${spec.filterField} = "${spec.filterValue}"`
         : null,
       '}',
     ]
@@ -410,7 +410,7 @@ export function graphSpecToDsl(spec: GraphSpec): string {
   }
 
   return [
-    `graph \"${spec.title.trim() || 'Untitled graph'}\" {`,
+    `graph "${spec.title.trim() || 'Untitled graph'}" {`,
     `  type: ${spec.chartType}`,
     `  x: ${spec.xField ?? 'unset'}`,
     `  y: ${spec.yField ?? (spec.chartType === 'scatter' ? 'unset' : 'count')}`,
@@ -420,7 +420,7 @@ export function graphSpecToDsl(spec: GraphSpec): string {
     spec.chartType === 'scatter' ? null : `  sort: ${spec.sortBy} ${spec.sortOrder}`,
     spec.chartType === 'scatter' || !spec.limit ? null : `  top: ${spec.limit}`,
     spec.filterField && spec.filterValue
-      ? `  where: ${spec.filterField} = \"${spec.filterValue}\"`
+      ? `  where: ${spec.filterField} = "${spec.filterValue}"`
       : null,
     '}',
   ]

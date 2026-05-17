@@ -2,18 +2,21 @@ import {
   DEFAULT_GRAPH_SPECS,
   GRAPH_FIELD_DEFINITIONS,
   getDefaultGraphSpec,
-  type GraphAggregation,
-  type GraphChartType,
-  type GraphDimensionFieldId,
-  type GraphFieldId,
-  type GraphSpec,
-  type GraphSortBy,
-  type GraphSortOrder,
+} from '@/features/analytics/custom-graphs'
+import type {
+  GraphAggregation,
+  GraphChartType,
+  GraphDimensionFieldId,
+  GraphFieldId,
+  GraphSpec,
+  GraphSortBy,
+  GraphSortOrder,
 } from '@/features/analytics/custom-graphs'
 
 export interface SavedCustomGraph {
   id: string
   spec: GraphSpec
+  pinned: boolean
   createdAt: string
   updatedAt: string
 }
@@ -66,6 +69,7 @@ export function createSavedCustomGraph(spec: GraphSpec): SavedCustomGraph {
   return {
     id: createGraphId(),
     spec,
+    pinned: false,
     createdAt: now,
     updatedAt: now,
   }
@@ -88,8 +92,20 @@ export function duplicateSavedCustomGraph(entry: SavedCustomGraph): SavedCustomG
       ...entry.spec,
       title: `${entry.spec.title} copy`,
     },
+    pinned: false,
     createdAt: now,
     updatedAt: now,
+  }
+}
+
+export function setSavedCustomGraphPinned(
+  entry: SavedCustomGraph,
+  pinned: boolean,
+): SavedCustomGraph {
+  return {
+    ...entry,
+    pinned,
+    updatedAt: new Date().toISOString(),
   }
 }
 
@@ -105,6 +121,7 @@ function normalizeSavedCustomGraph(entry: unknown): SavedCustomGraph | null {
   const candidate = entry as {
     id?: unknown
     spec?: unknown
+    pinned?: unknown
     createdAt?: unknown
     updatedAt?: unknown
   }
@@ -117,6 +134,7 @@ function normalizeSavedCustomGraph(entry: unknown): SavedCustomGraph | null {
   return {
     id: candidate.id,
     spec,
+    pinned: candidate.pinned === true,
     createdAt:
       typeof candidate.createdAt === 'string' ? candidate.createdAt : new Date().toISOString(),
     updatedAt:

@@ -1,8 +1,16 @@
 'use client'
 
 import type { ReactNode } from 'react'
-import { useState } from 'react'
-import { BarChart3Icon, CircleDollarSignIcon, SparklesIcon, TrendingUpIcon } from 'lucide-react'
+import { useMemo, useState } from 'react'
+import {
+  BarChart3Icon,
+  CircleDollarSignIcon,
+  HistoryIcon,
+  MenuIcon,
+  PinIcon,
+  SparklesIcon,
+  TrendingUpIcon,
+} from 'lucide-react'
 
 import {
   CategoryBreakdownChart,
@@ -14,6 +22,7 @@ import {
 import { CustomGraphStudio } from '@/components/analytics/custom-graph-studio'
 import { TransactionHistoryView } from '@/components/analytics/transaction-history-view'
 import { Badge } from '@/components/ui/badge'
+import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import type { AnalyticsDashboardData } from '@/features/analytics/dashboard-data'
 import { formatDate } from '@/features/analytics/date'
@@ -29,7 +38,16 @@ interface ImmersiveAnalyticsPageProps {
   timeZone?: string | null
 }
 
+type AnalyticsSectionId = 'overview' | 'signals' | 'custom-graphs' | 'pinned-graphs' | 'history'
+
 const panelClassName = 'analytics-card rounded-[2rem] text-white'
+const ANALYTICS_SECTIONS: Array<{ id: AnalyticsSectionId; label: string; icon: ReactNode }> = [
+  { id: 'overview', label: 'Overview', icon: <SparklesIcon className="size-4" /> },
+  { id: 'signals', label: 'Signals', icon: <BarChart3Icon className="size-4" /> },
+  { id: 'custom-graphs', label: 'Custom graphs', icon: <TrendingUpIcon className="size-4" /> },
+  { id: 'pinned-graphs', label: 'Pinned graphs', icon: <PinIcon className="size-4" /> },
+  { id: 'history', label: 'History', icon: <HistoryIcon className="size-4" /> },
+]
 
 export function ImmersiveAnalyticsPage({
   analytics,
@@ -40,53 +58,78 @@ export function ImmersiveAnalyticsPage({
   timeZone,
 }: ImmersiveAnalyticsPageProps) {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null)
+  const [isMenuOpen, setIsMenuOpen] = useState(false)
   const currency = analytics.selectedCurrency
   const strongestPaymentMethod = analytics.paymentMethodBreakdown.at(0)
   const strongestCategory = analytics.categoryBreakdown.at(0)
+  const sectionItems = useMemo(() => ANALYTICS_SECTIONS, [])
 
   return (
     <div className="flex min-h-[calc(100vh-6rem)] w-full flex-col gap-6 py-6 text-[#f7f2fb] sm:gap-8 sm:py-8">
-      <section className="grid gap-4 xl:grid-cols-[1.3fr_0.7fr]">
+      <section id="overview" className="scroll-mt-28 grid gap-4 xl:grid-cols-[1.3fr_0.7fr]">
         <Card
           className={cn(
             panelClassName,
             'analytics-hero-panel rounded-[2.25rem] shadow-[0_24px_72px_rgba(10,8,18,0.22)]',
           )}
         >
-          <CardHeader className="gap-4 sm:flex sm:flex-row sm:items-end sm:justify-between">
-            <div className="space-y-3">
-              <Badge
-                variant="secondary"
-                className="rounded-full border-0 bg-white/12 px-3 py-1 text-[#f8f1ff]"
+          <CardHeader className="gap-4">
+            <div className="flex flex-wrap items-start justify-between gap-4">
+              <div className="space-y-3">
+                <Badge
+                  variant="secondary"
+                  className="rounded-full border-0 bg-white/12 px-3 py-1 text-[#f8f1ff]"
+                >
+                  Read-only GitHub analytics
+                </Badge>
+                <div className="space-y-2">
+                  <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
+                    Calm, high-signal analytics for your spending history.
+                  </h1>
+                  <p className="max-w-2xl text-sm leading-6 text-white/76 sm:text-base">
+                    The main radar view highlights how payment methods distribute across your
+                    largest categories, sourced from{' '}
+                    <span className="font-medium text-white">{repoName}</span> on{' '}
+                    <span className="font-medium text-white">{branchName}</span>.
+                  </p>
+                </div>
+              </div>
+
+              <Button
+                variant="ghost"
+                className="rounded-full border border-white/12 bg-white/8 text-white hover:bg-white/12 lg:hidden"
+                onClick={() => setIsMenuOpen((current) => !current)}
               >
-                Read-only GitHub analytics
-              </Badge>
-              <div className="space-y-2">
-                <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                  Calm, high-signal analytics for your spending history.
-                </h1>
-                <p className="max-w-2xl text-sm leading-6 text-white/76 sm:text-base">
-                  The main radar view highlights how payment methods distribute across your largest
-                  categories, sourced from{' '}
-                  <span className="font-medium text-white">{repoName}</span> on{' '}
-                  <span className="font-medium text-white">{branchName}</span>.
+                <MenuIcon />
+                Sections
+              </Button>
+            </div>
+
+            <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
+              <AnalyticsSectionNav className="hidden lg:flex" items={sectionItems} />
+
+              <div className="max-w-sm rounded-[1.6rem] border border-white/12 bg-white/8 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] lg:justify-self-end">
+                <div className="flex items-center gap-2 text-sm text-white/68">
+                  <SparklesIcon className="size-4" />
+                  Current focus
+                </div>
+                <div className="mt-3 text-lg font-medium text-white">
+                  {selectedPaymentMethod ?? strongestPaymentMethod?.text ?? 'All payment methods'}
+                </div>
+                <p className="mt-2 text-sm leading-6 text-white/72">
+                  Select a payment mode from the radar legend or the share card to isolate its
+                  profile.
                 </p>
               </div>
             </div>
 
-            <div className="max-w-sm rounded-[1.6rem] border border-white/12 bg-white/8 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)]">
-              <div className="flex items-center gap-2 text-sm text-white/68">
-                <SparklesIcon className="size-4" />
-                Current focus
-              </div>
-              <div className="mt-3 text-lg font-medium text-white">
-                {selectedPaymentMethod ?? strongestPaymentMethod?.text ?? 'All payment methods'}
-              </div>
-              <p className="mt-2 text-sm leading-6 text-white/72">
-                Select a payment mode from the radar legend or the share card to isolate its
-                profile.
-              </p>
-            </div>
+            {isMenuOpen ? (
+              <AnalyticsSectionNav
+                className="lg:hidden"
+                items={sectionItems}
+                onNavigate={() => setIsMenuOpen(false)}
+              />
+            ) : null}
           </CardHeader>
         </Card>
 
@@ -153,33 +196,107 @@ export function ImmersiveAnalyticsPage({
         />
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.45fr_0.9fr]">
-        <PaymentCategoryRadarChart
-          currency={currency}
-          data={dashboardData.paymentCategoryRadar}
-          selectedPaymentMethod={selectedPaymentMethod}
-          onSelectPaymentMethod={setSelectedPaymentMethod}
+      <section id="signals" className="scroll-mt-28 space-y-4">
+        <SectionHeading
+          title="Signals"
+          description="Core distribution views, breakdowns, and daily rhythm summaries."
         />
-        <PaymentShareChart
+
+        <div className="grid gap-4 xl:grid-cols-[1.45fr_0.9fr]">
+          <PaymentCategoryRadarChart
+            currency={currency}
+            data={dashboardData.paymentCategoryRadar}
+            selectedPaymentMethod={selectedPaymentMethod}
+            onSelectPaymentMethod={setSelectedPaymentMethod}
+          />
+          <PaymentShareChart
+            currency={currency}
+            items={analytics.paymentMethodBreakdown}
+            selectedPaymentMethod={selectedPaymentMethod}
+            onSelectPaymentMethod={setSelectedPaymentMethod}
+          />
+        </div>
+
+        <div className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
+          <CategoryBreakdownChart currency={currency} items={analytics.categoryBreakdown} />
+          <DailySpendChart currency={currency} points={analytics.lineChartData} />
+        </div>
+      </section>
+
+      <section id="custom-graphs" className="scroll-mt-28 space-y-4">
+        <SectionHeading
+          title="Custom Graphs"
+          description="Build and save chart views from the synced expense dataset."
+        />
+        <CustomGraphStudio
           currency={currency}
-          items={analytics.paymentMethodBreakdown}
-          selectedPaymentMethod={selectedPaymentMethod}
-          onSelectPaymentMethod={setSelectedPaymentMethod}
+          expenses={analytics.filteredExpenses}
+          timeZone={timeZone}
         />
       </section>
 
-      <section className="grid gap-4 xl:grid-cols-[1.2fr_0.8fr]">
-        <CategoryBreakdownChart currency={currency} items={analytics.categoryBreakdown} />
-        <DailySpendChart currency={currency} points={analytics.lineChartData} />
+      <section id="pinned-graphs" className="scroll-mt-28 space-y-4">
+        <SectionHeading
+          title="Pinned Graphs"
+          description="Keep your strongest saved graph views one click away."
+        />
+        <CustomGraphStudio
+          currency={currency}
+          expenses={analytics.filteredExpenses}
+          timeZone={timeZone}
+          mode="pinned"
+        />
       </section>
 
-      <CustomGraphStudio
-        currency={currency}
-        expenses={analytics.filteredExpenses}
-        timeZone={timeZone}
-      />
+      <section id="history" className="scroll-mt-28 space-y-4">
+        <SectionHeading
+          title="History"
+          description="Inspect the underlying synced transactions with independent local filters."
+        />
+        <TransactionHistoryView currency={currency} expenses={analytics.filteredExpenses} />
+      </section>
+    </div>
+  )
+}
 
-      <TransactionHistoryView currency={currency} expenses={analytics.filteredExpenses} />
+function AnalyticsSectionNav({
+  className,
+  items,
+  onNavigate,
+}: {
+  className?: string
+  items: Array<{ id: AnalyticsSectionId; label: string; icon: ReactNode }>
+  onNavigate?: () => void
+}) {
+  return (
+    <div
+      className={cn(
+        'rounded-[1.6rem] border border-white/12 bg-white/7 p-2 backdrop-blur-sm',
+        className,
+      )}
+    >
+      <div className="flex flex-col gap-2 lg:flex-row lg:flex-wrap">
+        {items.map((item) => (
+          <a
+            key={item.id}
+            href={`#${item.id}`}
+            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/8 px-3 py-2 text-sm text-white/74 transition-colors hover:bg-white/12 hover:text-white"
+            onClick={onNavigate}
+          >
+            {item.icon}
+            {item.label}
+          </a>
+        ))}
+      </div>
+    </div>
+  )
+}
+
+function SectionHeading({ title, description }: { title: string; description: string }) {
+  return (
+    <div className="space-y-1">
+      <h2 className="text-xl font-semibold text-white">{title}</h2>
+      <p className="text-sm text-white/64">{description}</p>
     </div>
   )
 }

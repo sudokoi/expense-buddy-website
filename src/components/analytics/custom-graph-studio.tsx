@@ -3,7 +3,16 @@
 import { scaleBand, scaleLinear, scalePoint } from 'd3-scale'
 import { line } from 'd3-shape'
 import { useEffect, useMemo, useState } from 'react'
-import { CopyIcon, PencilLineIcon, PlusIcon, SaveIcon, Table2Icon, Trash2Icon } from 'lucide-react'
+import {
+  CopyIcon,
+  PencilLineIcon,
+  PinIcon,
+  PlusIcon,
+  SaveIcon,
+  Table2Icon,
+  Trash2Icon,
+  UnplugIcon,
+} from 'lucide-react'
 
 import { formatCurrencyValue } from '@/components/analytics/analytics-charts'
 import { Button } from '@/components/ui/button'
@@ -18,23 +27,25 @@ import {
   getGraphFieldsByKind,
   graphSpecToDsl,
   validateGraphSpec,
-  type AggregatedGraphModel,
-  type CustomGraphModel,
-  type GraphChartType,
-  type GraphFieldId,
-  type GraphMeasureFieldId,
-  type GraphSpec,
-  type PivotGraphModel,
-  type ScatterGraphModel,
+} from '@/features/analytics/custom-graphs'
+import type {
+  AggregatedGraphModel,
+  CustomGraphModel,
+  GraphChartType,
+  GraphFieldId,
+  GraphSpec,
+  PivotGraphModel,
+  ScatterGraphModel,
 } from '@/features/analytics/custom-graphs'
 import {
   createSavedCustomGraph,
   duplicateSavedCustomGraph,
   loadSavedCustomGraphs,
   persistSavedCustomGraphs,
+  setSavedCustomGraphPinned,
   updateSavedCustomGraph,
-  type SavedCustomGraph,
 } from '@/features/analytics/custom-graph-storage'
+import type { SavedCustomGraph } from '@/features/analytics/custom-graph-storage'
 import { cn } from '@/lib/utils'
 import type { Expense } from '@/types/expense'
 
@@ -51,16 +62,19 @@ export function CustomGraphStudio({
   currency,
   expenses,
   timeZone,
+  mode = 'studio',
 }: {
   currency: string
   expenses: Expense[]
   timeZone?: string | null
+  mode?: 'studio' | 'pinned'
 }) {
   const [spec, setSpec] = useState<GraphSpec>(() => getDefaultGraphSpec('bar'))
   const [savedGraphs, setSavedGraphs] = useState<SavedCustomGraph[]>([])
   const [selectedSavedGraphId, setSelectedSavedGraphId] = useState<string | null>(null)
   const [renamingGraphId, setRenamingGraphId] = useState<string | null>(null)
   const [renameDraft, setRenameDraft] = useState('')
+  const [hasLoadedSavedGraphs, setHasLoadedSavedGraphs] = useState(false)
   const issues = useMemo(() => validateGraphSpec(spec), [spec])
   const filterOptions = useMemo(
     () => (spec.filterField ? getGraphDimensionOptions(expenses, spec.filterField, timeZone) : []),
@@ -77,10 +91,22 @@ export function CustomGraphStudio({
     return buildCustomGraphModel(expenses, spec, timeZone)
   }, [expenses, issues.length, spec, timeZone])
   const graphDsl = useMemo(() => graphSpecToDsl(spec), [spec])
+  const pinnedGraphs = useMemo(
+    () => savedGraphs.filter((savedGraph) => savedGraph.pinned),
+    [savedGraphs],
+  )
+  const visibleSavedGraphs = mode === 'pinned' ? pinnedGraphs : savedGraphs
 
   useEffect(() => {
     setSavedGraphs(loadSavedCustomGraphs())
+    setHasLoadedSavedGraphs(true)
   }, [])
+
+  useEffect(() => {
+    if (!hasLoadedSavedGraphs) return
+
+    persistSavedCustomGraphs(savedGraphs)
+  }, [hasLoadedSavedGraphs, savedGraphs])
 
   function updateSpec(patch: Partial<GraphSpec>) {
     setSpec((current) => ({ ...current, ...patch }))
@@ -98,28 +124,22 @@ export function CustomGraphStudio({
     if (issues.length) return
 
     const nextEntry = createSavedCustomGraph(cloneGraphSpec(spec))
-    const nextSavedGraphs = [nextEntry, ...savedGraphs].sort((left, right) =>
-      right.updatedAt.localeCompare(left.updatedAt),
-    )
-
-    setSavedGraphs(nextSavedGraphs)
+    setSavedGraphs((current) => sortSavedGraphs([nextEntry, ...current]))
     setSelectedSavedGraphId(nextEntry.id)
-    persistSavedCustomGraphs(nextSavedGraphs)
   }
 
   function handleUpdateSaved() {
     if (!activeSavedGraph || issues.length) return
 
-    const nextSavedGraphs = savedGraphs
-      .map((entry) =>
-        entry.id === activeSavedGraph.id
-          ? updateSavedCustomGraph(entry, cloneGraphSpec(spec))
-          : entry,
-      )
-      .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
-
-    setSavedGraphs(nextSavedGraphs)
-    persistSavedCustomGraphs(nextSavedGraphs)
+    setSavedGraphs((current) =>
+      sortSavedGraphs(
+        current.map((entry) =>
+          entry.id === activeSavedGraph.id
+            ? updateSavedCustomGraph(entry, cloneGraphSpec(spec))
+            : entry,
+        ),
+      ),
+    )
   }
 
   function handleLoadSaved(entry: SavedCustomGraph) {
@@ -129,13 +149,11 @@ export function CustomGraphStudio({
   }
 
   function handleDeleteSaved(entry: SavedCustomGraph) {
-    const nextSavedGraphs = savedGraphs.filter((savedGraph) => savedGraph.id !== entry.id)
-    setSavedGraphs(nextSavedGraphs)
+    setSavedGraphs((current) => current.filter((savedGraph) => savedGraph.id !== entry.id))
     if (selectedSavedGraphId === entry.id) {
       setSelectedSavedGraphId(null)
       setSpec(getDefaultGraphSpec('bar'))
     }
-    persistSavedCustomGraphs(nextSavedGraphs)
   }
 
   function handleResetDraft() {
@@ -145,14 +163,9 @@ export function CustomGraphStudio({
 
   function handleDuplicateSaved(entry: SavedCustomGraph) {
     const duplicate = duplicateSavedCustomGraph(entry)
-    const nextSavedGraphs = [duplicate, ...savedGraphs].sort((left, right) =>
-      right.updatedAt.localeCompare(left.updatedAt),
-    )
-
-    setSavedGraphs(nextSavedGraphs)
+    setSavedGraphs((current) => sortSavedGraphs([duplicate, ...current]))
     setSelectedSavedGraphId(duplicate.id)
     setSpec(cloneGraphSpec(duplicate.spec))
-    persistSavedCustomGraphs(nextSavedGraphs)
   }
 
   function handleStartRename(entry: SavedCustomGraph) {
@@ -164,23 +177,24 @@ export function CustomGraphStudio({
     const trimmedTitle = renameDraft.trim()
     if (!trimmedTitle) return
 
-    const nextSavedGraphs = savedGraphs
-      .map((savedGraph) =>
-        savedGraph.id === entry.id
-          ? updateSavedCustomGraph(savedGraph, {
-              ...savedGraph.spec,
-              title: trimmedTitle,
-            })
-          : savedGraph,
-      )
-      .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+    setSavedGraphs((current) =>
+      sortSavedGraphs(
+        current.map((savedGraph) =>
+          savedGraph.id === entry.id
+            ? updateSavedCustomGraph(savedGraph, {
+                ...savedGraph.spec,
+                title: trimmedTitle,
+              })
+            : savedGraph,
+        ),
+      ),
+    )
 
-    setSavedGraphs(nextSavedGraphs)
     if (selectedSavedGraphId === entry.id) {
       setSpec((current) => ({ ...current, title: trimmedTitle }))
     }
+
     setRenamingGraphId(null)
-    persistSavedCustomGraphs(nextSavedGraphs)
   }
 
   function handleFilterFieldChange(value: GraphFieldId | null) {
@@ -188,6 +202,51 @@ export function CustomGraphStudio({
       filterField: value as GraphSpec['filterField'],
       filterValue: null,
     })
+  }
+
+  function handleTogglePinned(entry: SavedCustomGraph) {
+    setSavedGraphs((current) =>
+      sortSavedGraphs(
+        current.map((savedGraph) =>
+          savedGraph.id === entry.id
+            ? setSavedCustomGraphPinned(savedGraph, !savedGraph.pinned)
+            : savedGraph,
+        ),
+      ),
+    )
+  }
+
+  if (mode === 'pinned') {
+    return (
+      <Card className="analytics-card rounded-[2rem] text-white shadow-[0_18px_52px_rgba(10,8,18,0.16)]">
+        <CardHeader>
+          <CardTitle className="text-white">Pinned graphs</CardTitle>
+          <CardDescription className="text-white/72">
+            Promote your best custom graphs here so they stay easy to revisit without scrolling
+            through the full studio.
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          {pinnedGraphs.length ? (
+            pinnedGraphs.map((entry) => (
+              <PinnedGraphCard
+                key={entry.id}
+                currency={currency}
+                entry={entry}
+                expenses={expenses}
+                onLoad={handleLoadSaved}
+                onTogglePinned={handleTogglePinned}
+                timeZone={timeZone}
+              />
+            ))
+          ) : (
+            <div className="rounded-[1.2rem] border border-white/10 bg-white/7 px-4 py-6 text-sm text-white/66">
+              No pinned graphs yet. Pin any saved custom graph from the studio to surface it here.
+            </div>
+          )}
+        </CardContent>
+      </Card>
+    )
   }
 
   return (
@@ -417,13 +476,13 @@ export function CustomGraphStudio({
         <CardHeader>
           <CardTitle className="text-white">Saved locally</CardTitle>
           <CardDescription className="text-white/72">
-            Graphs are stored in this browser only. GitHub sync can come later without changing the
-            graph spec format.
+            Graphs are stored in this browser only. Pin the strongest ones to surface them in a
+            dedicated analytics section.
           </CardDescription>
         </CardHeader>
         <CardContent className="space-y-3">
-          {savedGraphs.length ? (
-            savedGraphs.map((entry) => {
+          {visibleSavedGraphs.length ? (
+            visibleSavedGraphs.map((entry) => {
               const isSelected = entry.id === selectedSavedGraphId
 
               return (
@@ -435,7 +494,7 @@ export function CustomGraphStudio({
                   )}
                 >
                   <div className="flex items-start justify-between gap-3">
-                    <div>
+                    <div className="min-w-0 flex-1">
                       {renamingGraphId === entry.id ? (
                         <div className="flex items-center gap-2">
                           <Input
@@ -460,7 +519,7 @@ export function CustomGraphStudio({
                         {new Date(entry.updatedAt).toLocaleString()}
                       </div>
                     </div>
-                    <div className="flex gap-2">
+                    <div className="flex flex-wrap gap-2">
                       <Button
                         size="sm"
                         variant="ghost"
@@ -468,6 +527,14 @@ export function CustomGraphStudio({
                         onClick={() => handleLoadSaved(entry)}
                       >
                         Load
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="rounded-full border border-white/10 bg-white/8 text-white/82 hover:bg-white/12"
+                        onClick={() => handleTogglePinned(entry)}
+                      >
+                        {entry.pinned ? <UnplugIcon /> : <PinIcon />}
                       </Button>
                       <Button
                         size="sm"
@@ -506,6 +573,69 @@ export function CustomGraphStudio({
         </CardContent>
       </Card>
     </section>
+  )
+}
+
+function PinnedGraphCard({
+  currency,
+  entry,
+  expenses,
+  onLoad,
+  onTogglePinned,
+  timeZone,
+}: {
+  currency: string
+  entry: SavedCustomGraph
+  expenses: Expense[]
+  onLoad: (entry: SavedCustomGraph) => void
+  onTogglePinned: (entry: SavedCustomGraph) => void
+  timeZone?: string | null
+}) {
+  const issues = useMemo(() => validateGraphSpec(entry.spec), [entry.spec])
+  const model = useMemo(
+    () => (issues.length ? null : buildCustomGraphModel(expenses, entry.spec, timeZone)),
+    [entry.spec, expenses, issues.length, timeZone],
+  )
+
+  return (
+    <div className="rounded-[1.4rem] border border-white/10 bg-white/7 px-4 py-4">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div>
+          <div className="font-medium text-white">{entry.spec.title}</div>
+          <div className="mt-1 text-xs text-white/56">
+            {GRAPH_TYPE_LABELS[entry.spec.chartType]} view
+          </div>
+        </div>
+        <div className="flex gap-2">
+          <Button
+            size="sm"
+            variant="ghost"
+            className="rounded-full border border-white/10 bg-white/8 text-white/82 hover:bg-white/12"
+            onClick={() => onLoad(entry)}
+          >
+            Edit
+          </Button>
+          <Button
+            size="sm"
+            variant="ghost"
+            className="rounded-full border border-white/10 bg-white/8 text-white/82 hover:bg-white/12"
+            onClick={() => onTogglePinned(entry)}
+          >
+            <UnplugIcon />
+          </Button>
+        </div>
+      </div>
+
+      <div className="mt-4">
+        {issues.length ? (
+          <div className="rounded-[1rem] border border-rose-200/20 bg-rose-300/8 px-4 py-3 text-sm text-rose-100/90">
+            {issues[0]}
+          </div>
+        ) : (
+          <CustomGraphPreview currency={currency} model={model} spec={entry.spec} compact />
+        )}
+      </div>
+    </div>
   )
 }
 
@@ -671,51 +801,53 @@ function CustomGraphPreview({
   currency,
   model,
   spec,
+  compact = false,
 }: {
   currency: string
   model: CustomGraphModel | null
   spec: GraphSpec
+  compact?: boolean
 }) {
   if (!model) {
     return null
   }
 
   if (model.chartType === 'pivot') {
-    return <PivotPreview currency={currency} model={model} spec={spec} />
+    return <PivotPreview currency={currency} model={model} spec={spec} compact={compact} />
   }
 
   if (model.chartType === 'scatter') {
-    return <ScatterPreview currency={currency} model={model} spec={spec} />
+    return <ScatterPreview currency={currency} model={model} spec={spec} compact={compact} />
   }
 
-  return <SeriesPreview currency={currency} model={model} spec={spec} />
+  return <SeriesPreview currency={currency} model={model} spec={spec} compact={compact} />
 }
 
 function SeriesPreview({
   currency,
   model,
   spec,
+  compact,
 }: {
   currency: string
   model: AggregatedGraphModel
   spec: GraphSpec
+  compact: boolean
 }) {
   const width = 760
-  const height = 320
+  const height = compact ? 260 : 320
   const margin = { top: 20, right: 16, bottom: 48, left: 44 }
   const innerWidth = width - margin.left - margin.right
   const innerHeight = height - margin.top - margin.bottom
-  const xScale =
-    model.chartType === 'bar'
-      ? scaleBand<string>().domain(model.xLabels).range([0, innerWidth]).padding(0.18)
-      : scalePoint<string>().domain(model.xLabels).range([0, innerWidth]).padding(0.5)
+  const barScale = scaleBand<string>().domain(model.xLabels).range([0, innerWidth]).padding(0.18)
+  const pointScale = scalePoint<string>().domain(model.xLabels).range([0, innerWidth]).padding(0.5)
   const yScale = scaleLinear()
     .domain([0, model.maxValue || 1])
     .range([innerHeight, 0])
     .nice(4)
   const groupScale = scaleBand<string>()
     .domain(model.groups.map((group) => group.label))
-    .range([0, xScale.bandwidth ? xScale.bandwidth() : 0])
+    .range([0, barScale.bandwidth()])
     .padding(0.14)
   const tickValues = yScale.ticks(4)
 
@@ -728,20 +860,22 @@ function SeriesPreview({
             {GRAPH_TYPE_LABELS[spec.chartType]} chart with {model.groups.length} series.
           </div>
         </div>
-        <div className="flex flex-wrap gap-2 text-xs text-white/62">
-          {model.groups.map((group, index) => (
-            <span
-              key={group.key}
-              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/8 px-2.5 py-1"
-            >
+        {!compact ? (
+          <div className="flex flex-wrap gap-2 text-xs text-white/62">
+            {model.groups.map((group, index) => (
               <span
-                className="inline-block size-2 rounded-full"
-                style={{ backgroundColor: getSeriesColor(group.label, index) }}
-              />
-              {group.label}
-            </span>
-          ))}
-        </div>
+                key={group.key}
+                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/8 px-2.5 py-1"
+              >
+                <span
+                  className="inline-block size-2 rounded-full"
+                  style={{ backgroundColor: getSeriesColor(group.label, index) }}
+                />
+                {group.label}
+              </span>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       <svg viewBox={`0 0 ${width} ${height}`} className="analytics-svg w-full overflow-visible">
@@ -759,7 +893,7 @@ function SeriesPreview({
             ? model.groups.map((group, groupIndex) => (
                 <g key={group.key}>
                   {group.points.map((point) => {
-                    const x = (xScale(point.xLabel) ?? 0) + (groupScale(group.label) ?? 0)
+                    const x = (barScale(point.xLabel) ?? 0) + (groupScale(group.label) ?? 0)
                     const barWidth = Math.max(10, groupScale.bandwidth())
                     const barHeight = innerHeight - yScale(point.value)
 
@@ -785,7 +919,7 @@ function SeriesPreview({
               ))
             : model.groups.map((group, groupIndex) => {
                 const path = line<(typeof group.points)[number]>()
-                  .x((point) => xScale(point.xLabel) ?? 0)
+                  .x((point) => pointScale(point.xLabel) ?? 0)
                   .y((point) => yScale(point.value))(group.points)
 
                 return (
@@ -799,7 +933,7 @@ function SeriesPreview({
                     {group.points.map((point) => (
                       <circle
                         key={`${group.key}-${point.xKey}`}
-                        cx={xScale(point.xLabel) ?? 0}
+                        cx={pointScale(point.xLabel) ?? 0}
                         cy={yScale(point.value)}
                         r={4}
                         fill={getSeriesColor(group.label, groupIndex)}
@@ -816,9 +950,11 @@ function SeriesPreview({
                 )
               })}
 
-          {sampleLabels(model.xLabels, 7).map((label) => {
-            const x = xScale(label) ?? 0
-            const xPosition = model.chartType === 'bar' ? x + xScale.bandwidth() / 2 : x
+          {sampleLabels(model.xLabels, compact ? 5 : 7).map((label) => {
+            const xPosition =
+              model.chartType === 'bar'
+                ? (barScale(label) ?? 0) + barScale.bandwidth() / 2
+                : (pointScale(label) ?? 0)
 
             return (
               <text
@@ -842,13 +978,15 @@ function ScatterPreview({
   currency,
   model,
   spec,
+  compact,
 }: {
   currency: string
   model: ScatterGraphModel
   spec: GraphSpec
+  compact: boolean
 }) {
   const width = 760
-  const height = 320
+  const height = compact ? 260 : 320
   const margin = { top: 18, right: 18, bottom: 42, left: 44 }
   const innerWidth = width - margin.left - margin.right
   const innerHeight = height - margin.top - margin.bottom
@@ -864,6 +1002,8 @@ function ScatterPreview({
     .domain([0, model.maxZ || 1])
     .range([4, 18])
   const groups = Array.from(new Set(model.points.map((point) => point.group)))
+  const xFieldLabel = getGraphFieldDefinition(spec.xField)?.label.toLowerCase() ?? 'x-axis'
+  const yFieldLabel = getGraphFieldDefinition(spec.yField)?.label.toLowerCase() ?? 'y-axis'
 
   return (
     <div className="space-y-4 rounded-[1.4rem] border border-white/10 bg-white/7 px-4 py-4">
@@ -871,24 +1011,25 @@ function ScatterPreview({
         <div>
           <div className="text-sm font-medium text-white">Live preview</div>
           <div className="text-xs text-white/56">
-            Scatter plot using {getGraphFieldDefinition(spec.xField)?.label?.toLowerCase()} vs{' '}
-            {getGraphFieldDefinition(spec.yField)?.label?.toLowerCase()}.
+            Scatter plot using {xFieldLabel} vs {yFieldLabel}.
           </div>
         </div>
-        <div className="flex flex-wrap gap-2 text-xs text-white/62">
-          {groups.map((group, index) => (
-            <span
-              key={group}
-              className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/8 px-2.5 py-1"
-            >
+        {!compact ? (
+          <div className="flex flex-wrap gap-2 text-xs text-white/62">
+            {groups.map((group, index) => (
               <span
-                className="inline-block size-2 rounded-full"
-                style={{ backgroundColor: getSeriesColor(group, index) }}
-              />
-              {group}
-            </span>
-          ))}
-        </div>
+                key={group}
+                className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/8 px-2.5 py-1"
+              >
+                <span
+                  className="inline-block size-2 rounded-full"
+                  style={{ backgroundColor: getSeriesColor(group, index) }}
+                />
+                {group}
+              </span>
+            ))}
+          </div>
+        ) : null}
       </div>
 
       <svg viewBox={`0 0 ${width} ${height}`} className="analytics-svg w-full overflow-visible">
@@ -901,7 +1042,7 @@ function ScatterPreview({
               textAnchor="middle"
               className="analytics-axis-text"
             >
-              {formatGraphValue(tick, spec.xField as GraphMeasureFieldId, 'sum', currency)}
+              {formatGraphValue(tick, spec.xField, 'sum', currency)}
             </text>
           ))}
 
@@ -909,7 +1050,7 @@ function ScatterPreview({
             <g key={`y-${tick}`} transform={`translate(0, ${yScale(tick)})`}>
               <line x2={innerWidth} className="analytics-grid-line" />
               <text x={-10} y={4} textAnchor="end" className="analytics-axis-text">
-                {formatGraphValue(tick, spec.yField as GraphMeasureFieldId, 'sum', currency)}
+                {formatGraphValue(tick, spec.yField, 'sum', currency)}
               </text>
             </g>
           ))}
@@ -928,12 +1069,9 @@ function ScatterPreview({
                 stroke="rgba(255,255,255,0.24)"
                 strokeWidth={1.2}
               >
-                <title>
-                  {point.label}\nX:{' '}
-                  {formatGraphValue(point.x, spec.xField as GraphMeasureFieldId, 'sum', currency)}
-                  \nY:{' '}
-                  {formatGraphValue(point.y, spec.yField as GraphMeasureFieldId, 'sum', currency)}
-                </title>
+                <title>{`${point.label}
+X: ${formatGraphValue(point.x, spec.xField, 'sum', currency)}
+Y: ${formatGraphValue(point.y, spec.yField, 'sum', currency)}`}</title>
               </circle>
             )
           })}
@@ -947,18 +1085,24 @@ function PivotPreview({
   currency,
   model,
   spec,
+  compact,
 }: {
   currency: string
   model: PivotGraphModel
   spec: GraphSpec
+  compact: boolean
 }) {
+  const rowFieldLabel = getGraphFieldDefinition(spec.rowField)?.label.toLowerCase() ?? 'rows'
+  const columnFieldLabel =
+    getGraphFieldDefinition(spec.columnField)?.label.toLowerCase() ?? 'columns'
+  const columns = compact ? model.columns.slice(0, 4) : model.columns
+
   return (
     <div className="space-y-4 rounded-[1.4rem] border border-white/10 bg-white/7 px-4 py-4">
       <div>
         <div className="text-sm font-medium text-white">Live preview</div>
         <div className="text-xs text-white/56">
-          Pivoting {getGraphFieldDefinition(spec.rowField)?.label?.toLowerCase()} by{' '}
-          {getGraphFieldDefinition(spec.columnField)?.label?.toLowerCase()}.
+          Pivoting {rowFieldLabel} by {columnFieldLabel}.
         </div>
       </div>
 
@@ -967,7 +1111,7 @@ function PivotPreview({
           <thead>
             <tr className="border-b border-white/8 bg-white/5 text-left text-xs uppercase tracking-[0.12em] text-white/54">
               <th className="px-3 py-2">Row</th>
-              {model.columns.map((column) => (
+              {columns.map((column) => (
                 <th key={column} className="px-3 py-2 text-right">
                   {column}
                 </th>
@@ -979,7 +1123,7 @@ function PivotPreview({
             {model.rows.map((row) => (
               <tr key={row} className="border-b border-white/6 last:border-b-0">
                 <td className="px-3 py-2 text-white">{row}</td>
-                {model.columns.map((column) => (
+                {columns.map((column) => (
                   <td key={`${row}-${column}`} className="px-3 py-2 text-right">
                     {formatGraphValue(
                       model.values[`${row}:::${column}`] ?? 0,
@@ -1000,24 +1144,6 @@ function PivotPreview({
               </tr>
             ))}
           </tbody>
-          <tfoot>
-            <tr className="bg-white/5 font-medium text-white">
-              <td className="px-3 py-2">Total</td>
-              {model.columns.map((column) => (
-                <td key={column} className="px-3 py-2 text-right">
-                  {formatGraphValue(
-                    model.columnTotals[column] ?? 0,
-                    model.valueField,
-                    model.aggregation,
-                    currency,
-                  )}
-                </td>
-              ))}
-              <td className="px-3 py-2 text-right">
-                {formatGraphValue(model.grandTotal, model.valueField, model.aggregation, currency)}
-              </td>
-            </tr>
-          </tfoot>
         </table>
       </div>
     </div>
@@ -1069,4 +1195,8 @@ function sampleLabels(labels: string[], targetCount: number) {
   return labels.filter(
     (_, index) => index === 0 || index === labels.length - 1 || index % step === 0,
   )
+}
+
+function sortSavedGraphs(savedGraphs: SavedCustomGraph[]) {
+  return [...savedGraphs].sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
 }

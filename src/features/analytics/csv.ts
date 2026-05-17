@@ -1,7 +1,7 @@
 import Papa from 'papaparse'
 
 import { resolvePaymentMethodType } from '@/features/analytics/payment-methods'
-import type { Expense, PaymentMethodType } from '@/types/expense'
+import type { Expense } from '@/types/expense'
 
 export interface CSVRow {
   id: string
@@ -51,7 +51,7 @@ export function importFromCSV(csvString: string): Expense[] {
   return result.data.map((row) => {
     const paymentMethod = row.paymentMethodType?.trim()
       ? {
-          type: resolvePaymentMethodType(row.paymentMethodType) as PaymentMethodType,
+          type: resolvePaymentMethodType(row.paymentMethodType),
           identifier: row.paymentMethodId?.trim() || undefined,
           instrumentId: row.paymentInstrumentId?.trim() || undefined,
         }
