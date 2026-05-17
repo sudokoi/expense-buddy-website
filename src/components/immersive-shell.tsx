@@ -1,5 +1,5 @@
 import type { ReactNode } from 'react'
-import { Link } from '@tanstack/react-router'
+import { Link, useRouterState } from '@tanstack/react-router'
 
 import { Button } from '@/components/ui/button'
 import { cn } from '@/lib/utils'
@@ -22,6 +22,12 @@ export function ImmersiveShell({
   surface,
   sessionLabel,
 }: ImmersiveShellProps) {
+  const pathname = useRouterState({
+    select: (state) => state.location.pathname,
+  })
+  const isHomeRoute = pathname === '/'
+  const isAnalyticsRoute = pathname.startsWith('/app')
+
   return (
     <div
       className={cn(
@@ -57,11 +63,23 @@ export function ImmersiveShell({
               <Button
                 size="sm"
                 variant="ghost"
+                className={cn(
+                  isHomeRoute &&
+                    'border border-border/70 bg-white/80 text-foreground shadow-sm hover:bg-white',
+                )}
                 render={<Link to="/" search={{ authError: undefined }} />}
               >
                 Home
               </Button>
-              <Button size="sm" variant="ghost" render={<Link to="/app" />}>
+              <Button
+                size="sm"
+                variant="ghost"
+                className={cn(
+                  isAnalyticsRoute &&
+                    'border border-border/70 bg-white/80 text-foreground shadow-sm hover:bg-white',
+                )}
+                render={<Link to="/app" />}
+              >
                 Analytics
               </Button>
               <Button
