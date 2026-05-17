@@ -126,13 +126,13 @@ export function ImmersiveAnalyticsPage({
             ANALYTICS_SECTIONS.findIndex((section) => section.id === left[0]) -
             ANALYTICS_SECTIONS.findIndex((section) => section.id === right[0])
           )
-        })[0]?.[0]
+        })
 
         if (!sortedVisibleSections.length) {
           return
         }
 
-        setActiveSectionId(sortedVisibleSections[0][0] as AnalyticsSectionId)
+        setActiveSectionId(sortedVisibleSections[0][0])
       },
       {
         rootMargin: '-25% 0px -55% 0px',
@@ -165,6 +165,7 @@ export function ImmersiveAnalyticsPage({
               activeSectionId={activeSectionId}
               items={sectionItems}
               variant="sticky"
+              className="rounded-[1.9rem]"
             />
           </div>
         </div>
@@ -392,13 +393,13 @@ function AnalyticsSectionNav({
         className,
       )}
     >
-      <div className="flex gap-2 overflow-x-auto pb-1">
+      <div className="flex flex-wrap gap-2">
         {items.map((item) => (
           <a
             key={item.id}
             href={`#${item.id}`}
             className={cn(
-              'inline-flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-sm shadow-sm transition-colors',
+              'inline-flex min-w-0 items-center gap-2 rounded-full border px-3 py-2 text-sm shadow-sm transition-colors',
               activeSectionId === item.id
                 ? 'border-border bg-white text-foreground shadow-[0_10px_24px_rgba(74,68,88,0.12)]'
                 : 'border-border/70 bg-white/80 text-muted-foreground hover:bg-white hover:text-foreground',
