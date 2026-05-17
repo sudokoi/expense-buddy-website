@@ -1,7 +1,7 @@
-import { Suspense, lazy } from 'react'
 import { ArrowRightIcon } from 'lucide-react'
 import { createFileRoute } from '@tanstack/react-router'
 
+import { HomeScene } from '@/components/home/home-scene'
 import { ImmersiveShell } from '@/components/immersive-shell'
 import { getOptionalConnectedSession } from '@/features/auth/github.functions'
 import { getAuthErrorMessage } from '@/features/auth/errors'
@@ -11,9 +11,6 @@ import { siteConfig } from '@/lib/site'
 
 const PLAY_STORE_BADGE_URL =
   'https://play.google.com/intl/en_us/badges/static/images/badges/en_badge_web_generic.png'
-const HomeScene = lazy(() =>
-  import('@/components/home/home-scene').then((module) => ({ default: module.HomeScene })),
-)
 
 export const Route = createFileRoute('/')({
   validateSearch: (search) => ({
@@ -34,13 +31,9 @@ function Home() {
   return (
     <ImmersiveShell
       surface="light"
-      scene={
-        <Suspense fallback={null}>
-          <HomeScene />
-        </Suspense>
-      }
+      scene={<HomeScene />}
       sessionLabel={session ? `Connected as ${session.userLogin}` : null}
-      contentClassName="max-w-4xl items-center justify-center py-12 home-shell-content"
+      contentClassName="max-w-4xl items-center justify-center py-12"
     >
       {authErrorMessage ? (
         <div className="absolute top-6 left-1/2 w-full max-w-xl -translate-x-1/2 px-6">
@@ -53,7 +46,7 @@ function Home() {
         </div>
       ) : null}
 
-      <section className="flex w-full flex-col items-center justify-center gap-8 text-center">
+      <section className="home-hero-section relative flex w-full flex-col items-center justify-center gap-8 text-center">
         <img
           src="/expense-buddy.png"
           alt="Expense Buddy"

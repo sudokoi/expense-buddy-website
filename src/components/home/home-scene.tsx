@@ -1,71 +1,16 @@
 'use client'
 
-import { Canvas, useFrame } from '@react-three/fiber'
-import { Float, Line, Points, PointMaterial } from '@react-three/drei'
-import { useMemo, useRef } from 'react'
-import type { Group } from 'three'
-
 const ORION_STARS = [
-  {
-    id: 'betelgeuse',
-    position: [-1.18, 0.92, 0.04],
-    color: '#ffb0a1',
-    size: 0.16,
-  },
-  {
-    id: 'bellatrix',
-    position: [1.08, 0.82, 0.04],
-    color: '#d9e6ff',
-    size: 0.12,
-  },
-  {
-    id: 'alnitak',
-    position: [-0.56, 0.14, 0.05],
-    color: '#d7ebff',
-    size: 0.11,
-  },
-  {
-    id: 'alnilam',
-    position: [0, 0.08, 0.06],
-    color: '#e4efff',
-    size: 0.12,
-  },
-  {
-    id: 'mintaka',
-    position: [0.55, 0.02, 0.05],
-    color: '#eef4ff',
-    size: 0.11,
-  },
-  {
-    id: 'saiph',
-    position: [-0.68, -1.2, 0.03],
-    color: '#ffe3d2',
-    size: 0.11,
-  },
-  {
-    id: 'rigel',
-    position: [1.02, -1.08, 0.08],
-    color: '#8ec5ff',
-    size: 0.16,
-  },
-  {
-    id: 'meissa',
-    position: [-0.04, 1.42, 0.08],
-    color: '#d8f0ff',
-    size: 0.08,
-  },
-  {
-    id: 'hatysa',
-    position: [-0.08, -0.46, -0.02],
-    color: '#dff0ff',
-    size: 0.07,
-  },
-  {
-    id: 'theta-orionis',
-    position: [0.02, -0.82, -0.05],
-    color: '#fff0f3',
-    size: 0.08,
-  },
+  { id: 'betelgeuse', x: 22, y: 18, size: 14, color: '#f5b2a3' },
+  { id: 'bellatrix', x: 78, y: 20, size: 11, color: '#dce7fb' },
+  { id: 'alnitak', x: 38, y: 40, size: 10, color: '#dae8fb' },
+  { id: 'alnilam', x: 50, y: 44, size: 11, color: '#eef3ff' },
+  { id: 'mintaka', x: 62, y: 38, size: 10, color: '#f5f8ff' },
+  { id: 'saiph', x: 34, y: 74, size: 10, color: '#f6dfcf' },
+  { id: 'rigel', x: 74, y: 70, size: 14, color: '#a2caf5' },
+  { id: 'meissa', x: 49, y: 7, size: 8, color: '#ddf0fb' },
+  { id: 'hatysa', x: 49, y: 55, size: 7, color: '#e6f1fb' },
+  { id: 'theta-orionis', x: 51, y: 66, size: 8, color: '#f9edf1' },
 ] as const
 
 const STAR_LINKS = [
@@ -83,143 +28,109 @@ const STAR_LINKS = [
 ] as const
 
 const BACKGROUND_STARS = [
-  [-2.6, 1.3, -0.2],
-  [-2.15, -0.86, -0.18],
-  [-1.7, 1.9, -0.14],
-  [1.9, 1.72, -0.12],
-  [2.34, 0.42, -0.18],
-  [2.1, -1.12, -0.16],
+  { id: 'bg-1', x: 9, y: 16, size: 2.2 },
+  { id: 'bg-2', x: 15, y: 74, size: 2.4 },
+  { id: 'bg-3', x: 28, y: 10, size: 1.8 },
+  { id: 'bg-4', x: 85, y: 14, size: 2.2 },
+  { id: 'bg-5', x: 91, y: 32, size: 2 },
+  { id: 'bg-6', x: 81, y: 82, size: 2.6 },
+  { id: 'bg-7', x: 11, y: 53, size: 1.8 },
+  { id: 'bg-8', x: 39, y: 87, size: 1.6 },
 ] as const
 
-const NEBULA_PARTICLES = [
-  [-0.14, -0.32, -0.1],
-  [-0.08, -0.44, -0.08],
-  [-0.02, -0.58, -0.1],
-  [0.06, -0.46, -0.12],
-  [0.12, -0.62, -0.08],
-  [-0.04, -0.72, -0.06],
-  [0.08, -0.78, -0.08],
+const NEBULA_POINTS = [
+  { id: 'n-1', x: 47, y: 57, radius: 14, opacity: 0.36, color: '#ffb1b8' },
+  { id: 'n-2', x: 53, y: 60, radius: 18, opacity: 0.24, color: '#f1a4b3' },
+  { id: 'n-3', x: 50, y: 67, radius: 11, opacity: 0.26, color: '#ffc5cb' },
+  { id: 'n-4', x: 46, y: 64, radius: 8, opacity: 0.22, color: '#f7c1c7' },
 ] as const
 
-function OrionFigure() {
-  const group = useRef<Group>(null)
-  const starLookup = useMemo(
-    () => Object.fromEntries(ORION_STARS.map((star) => [star.id, star.position])),
-    [],
-  )
-
-  useFrame((state) => {
-    if (!group.current) return
-    group.current.rotation.z = Math.sin(state.clock.elapsedTime * 0.1) * 0.012
-    group.current.position.y = Math.sin(state.clock.elapsedTime * 0.16) * 0.03
-  })
-
-  return (
-    <group ref={group} position={[0.05, 0.8, 0]} scale={1.55}>
-      <Float speed={0.55} rotationIntensity={0.012} floatIntensity={0.06}>
-        {STAR_LINKS.map(([from, to]) => (
-          <Line
-            key={`${from}-${to}`}
-            points={[starLookup[from], starLookup[to]]}
-            color="#fff4f7"
-            lineWidth={0.65}
-            transparent
-            opacity={0.32}
-          />
-        ))}
-
-        {ORION_STARS.map((star) => (
-          <Points
-            key={star.id}
-            positions={Float32Array.from(star.position)}
-            stride={3}
-            frustumCulled
-          >
-            <PointMaterial
-              color={star.color}
-              transparent
-              opacity={0.98}
-              size={star.size}
-              sizeAttenuation
-              depthWrite={false}
-            />
-          </Points>
-        ))}
-      </Float>
-    </group>
-  )
-}
-
-function OrionNebula() {
-  const group = useRef<Group>(null)
-  const positions = useMemo(() => Float32Array.from(NEBULA_PARTICLES.flatMap((point) => point)), [])
-
-  useFrame((state) => {
-    if (!group.current) return
-    group.current.rotation.z = -Math.sin(state.clock.elapsedTime * 0.18) * 0.02
-  })
-
-  return (
-    <group ref={group} position={[0.05, 0.8, 0]} scale={1.55}>
-      <Points positions={positions} stride={3} frustumCulled>
-        <PointMaterial
-          color="#ff8c94"
-          transparent
-          opacity={0.38}
-          size={0.085}
-          sizeAttenuation
-          depthWrite={false}
-        />
-      </Points>
-      <Points positions={Float32Array.from([0.02, -0.56, -0.18])} stride={3} frustumCulled>
-        <PointMaterial
-          color="#ffb6c1"
-          transparent
-          opacity={0.24}
-          size={0.28}
-          sizeAttenuation
-          depthWrite={false}
-        />
-      </Points>
-    </group>
-  )
-}
-
-function BackgroundStars() {
-  const positions = useMemo(() => Float32Array.from(BACKGROUND_STARS.flatMap((point) => point)), [])
-
-  return (
-    <Points positions={positions} stride={3} frustumCulled>
-      <PointMaterial
-        color="#fffaf5"
-        transparent
-        opacity={0.58}
-        size={0.075}
-        sizeAttenuation
-        depthWrite={false}
-      />
-    </Points>
-  )
-}
+const starLookup = Object.fromEntries(ORION_STARS.map((star) => [star.id, star]))
 
 export function HomeScene() {
   return (
-    <Canvas
-      camera={{ position: [0, 0, 5.2], fov: 24 }}
-      dpr={[1, 1.5]}
-      gl={{ alpha: true, antialias: true }}
+    <div
+      className="flex h-full w-full items-center justify-center px-4 py-12 sm:px-8"
+      aria-hidden="true"
     >
-      <color attach="background" args={['#000000']} />
-      <fog attach="fog" args={['#fff8f0', 4.8, 8.6]} />
-      <ambientLight intensity={0.9} />
-      <directionalLight position={[1.2, 2.2, 4]} intensity={0.9} color="#fff8f0" />
-      <directionalLight position={[-1.8, 0.8, 3]} intensity={0.35} color="#e9efff" />
-      <pointLight position={[-1.18, 1.7, 2.3]} intensity={7} distance={4.2} color="#ff9f8d" />
-      <pointLight position={[1.05, -0.3, 2.3]} intensity={7} distance={4.5} color="#90c7ff" />
-      <pointLight position={[0.08, -0.05, 1.6]} intensity={5} distance={2.6} color="#ff8c94" />
-      <OrionFigure />
-      <OrionNebula />
-      <BackgroundStars />
-    </Canvas>
+      <div className="relative aspect-[1.2/1] w-full max-w-4xl">
+        <svg
+          viewBox="0 0 100 84"
+          className="h-full w-full overflow-visible"
+          fill="none"
+          xmlns="http://www.w3.org/2000/svg"
+        >
+          <defs>
+            <radialGradient id="home-orion-glow" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="rgba(255,255,255,0.85)" />
+              <stop offset="100%" stopColor="rgba(255,255,255,0)" />
+            </radialGradient>
+            <radialGradient id="home-nebula-warm" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#ffb1b8" stopOpacity="0.7" />
+              <stop offset="100%" stopColor="#ffb1b8" stopOpacity="0" />
+            </radialGradient>
+            <radialGradient id="home-nebula-cool" cx="50%" cy="50%" r="50%">
+              <stop offset="0%" stopColor="#d8e6ff" stopOpacity="0.5" />
+              <stop offset="100%" stopColor="#d8e6ff" stopOpacity="0" />
+            </radialGradient>
+            <filter id="home-soft-blur" x="-50%" y="-50%" width="200%" height="200%">
+              <feGaussianBlur stdDeviation="2.6" />
+            </filter>
+          </defs>
+
+          <ellipse cx="50" cy="42" rx="44" ry="28" fill="url(#home-nebula-cool)" opacity="0.58" />
+          <ellipse cx="50" cy="58" rx="18" ry="12" fill="url(#home-nebula-warm)" opacity="0.88" />
+
+          {BACKGROUND_STARS.map((star) => (
+            <circle
+              key={star.id}
+              cx={star.x}
+              cy={star.y}
+              r={star.size}
+              fill="#fff9f4"
+              opacity="0.72"
+            />
+          ))}
+
+          {NEBULA_POINTS.map((point) => (
+            <circle
+              key={point.id}
+              cx={point.x}
+              cy={point.y}
+              r={point.radius}
+              fill={point.color}
+              opacity={point.opacity}
+              filter="url(#home-soft-blur)"
+            />
+          ))}
+
+          {STAR_LINKS.map(([from, to]) => (
+            <line
+              key={`${from}-${to}`}
+              x1={starLookup[from].x}
+              y1={starLookup[from].y}
+              x2={starLookup[to].x}
+              y2={starLookup[to].y}
+              stroke="#fff5f8"
+              strokeOpacity="0.34"
+              strokeWidth="0.34"
+            />
+          ))}
+
+          {ORION_STARS.map((star) => (
+            <g key={star.id}>
+              <circle
+                cx={star.x}
+                cy={star.y}
+                r={star.size * 1.9}
+                fill="url(#home-orion-glow)"
+                opacity="0.38"
+              />
+              <circle cx={star.x} cy={star.y} r={star.size} fill={star.color} />
+            </g>
+          ))}
+        </svg>
+      </div>
+    </div>
   )
 }

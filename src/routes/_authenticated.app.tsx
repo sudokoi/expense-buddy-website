@@ -5,6 +5,7 @@ import { ImmersiveShell } from '@/components/immersive-shell'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
+import { buildAnalyticsDashboardData } from '@/features/analytics/dashboard-data'
 import { buildAnalyticsQueryResult } from '@/features/analytics/queries'
 import { parseFilters } from '@/features/analytics/filters'
 import { getUserTimezone } from '@/features/analytics/timezone.functions'
@@ -29,11 +30,13 @@ export const Route = createFileRoute('/_authenticated/app')({
       filters,
       timeZone,
     })
+    const dashboardData = buildAnalyticsDashboardData(analytics)
 
     return {
       snapshot,
       filters,
       analytics,
+      dashboardData,
       timeZone,
     }
   },
@@ -41,7 +44,7 @@ export const Route = createFileRoute('/_authenticated/app')({
 })
 
 function AnalyticsRoute() {
-  const { snapshot, analytics, timeZone } = Route.useLoaderData()
+  const { snapshot, analytics, dashboardData, timeZone } = Route.useLoaderData()
   const router = useRouter()
   const [isSyncingTimezone, setIsSyncingTimezone] = useState(false)
   const hasExpenses = snapshot.expenses.length > 0
@@ -128,6 +131,7 @@ function AnalyticsRoute() {
         <Suspense fallback={<Skeleton className="min-h-[70vh] w-full rounded-[2rem]" />}>
           <ImmersiveAnalyticsPage
             analytics={analytics}
+            dashboardData={dashboardData}
             repoName={snapshot.repo.repoFullName}
             branchName={snapshot.repo.branch}
             totalExpenses={snapshot.expenses.length}
