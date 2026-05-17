@@ -66,7 +66,7 @@ function AnalyticsRoute() {
 
   if (isSyncingTimezone) {
     return (
-      <ImmersiveShell surface="immersive" contentClassName="py-8">
+      <ImmersiveShell surface="light" contentClassName="py-8">
         <section className="flex flex-col gap-4 rounded-3xl border border-border/70 bg-card/60 p-6 shadow-sm">
           <div className="space-y-2">
             <Badge variant="secondary">Read-only GitHub analytics</Badge>
@@ -95,7 +95,7 @@ function AnalyticsRoute() {
 
   return (
     <ImmersiveShell
-      surface="immersive"
+      surface="light"
       contentClassName="py-4 sm:py-6"
       sessionLabel={snapshot.repo.repoFullName}
     >

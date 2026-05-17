@@ -40,7 +40,7 @@ interface ImmersiveAnalyticsPageProps {
 
 type AnalyticsSectionId = 'overview' | 'signals' | 'custom-graphs' | 'pinned-graphs' | 'history'
 
-const panelClassName = 'analytics-card rounded-[2rem] text-white'
+const panelClassName = 'analytics-card rounded-[2rem] text-foreground'
 const ANALYTICS_SECTIONS: Array<{ id: AnalyticsSectionId; label: string; icon: ReactNode }> = [
   { id: 'overview', label: 'Overview', icon: <SparklesIcon className="size-4" /> },
   { id: 'signals', label: 'Signals', icon: <BarChart3Icon className="size-4" /> },
@@ -65,12 +65,12 @@ export function ImmersiveAnalyticsPage({
   const sectionItems = useMemo(() => ANALYTICS_SECTIONS, [])
 
   return (
-    <div className="flex min-h-[calc(100vh-6rem)] w-full flex-col gap-6 py-6 text-[#f7f2fb] sm:gap-8 sm:py-8">
+    <div className="flex min-h-[calc(100vh-6rem)] w-full flex-col gap-6 py-6 text-foreground sm:gap-8 sm:py-8">
       <section id="overview" className="scroll-mt-28 grid gap-4 xl:grid-cols-[1.3fr_0.7fr]">
         <Card
           className={cn(
             panelClassName,
-            'analytics-hero-panel rounded-[2.25rem] shadow-[0_24px_72px_rgba(10,8,18,0.22)]',
+            'analytics-hero-panel rounded-[2.25rem] shadow-[0_24px_72px_rgba(74,68,88,0.12)]',
           )}
         >
           <CardHeader className="gap-4">
@@ -78,7 +78,7 @@ export function ImmersiveAnalyticsPage({
               <div className="space-y-3">
                 <Badge
                   variant="secondary"
-                  className="rounded-full border-0 bg-white/12 px-3 py-1 text-[#f8f1ff]"
+                  className="rounded-full border-0 bg-white/75 px-3 py-1 text-foreground shadow-sm"
                 >
                   Read-only GitHub analytics
                 </Badge>
@@ -86,18 +86,18 @@ export function ImmersiveAnalyticsPage({
                   <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
                     Calm, high-signal analytics for your spending history.
                   </h1>
-                  <p className="max-w-2xl text-sm leading-6 text-white/76 sm:text-base">
+                  <p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
                     The main radar view highlights how payment methods distribute across your
                     largest categories, sourced from{' '}
-                    <span className="font-medium text-white">{repoName}</span> on{' '}
-                    <span className="font-medium text-white">{branchName}</span>.
+                    <span className="font-medium text-foreground">{repoName}</span> on{' '}
+                    <span className="font-medium text-foreground">{branchName}</span>.
                   </p>
                 </div>
               </div>
 
               <Button
                 variant="ghost"
-                className="rounded-full border border-white/12 bg-white/8 text-white hover:bg-white/12 lg:hidden"
+                className="rounded-full border border-border/70 bg-white/75 text-foreground shadow-sm hover:bg-white lg:hidden"
                 onClick={() => setIsMenuOpen((current) => !current)}
               >
                 <MenuIcon />
@@ -106,17 +106,17 @@ export function ImmersiveAnalyticsPage({
             </div>
 
             <div className="grid gap-4 lg:grid-cols-[minmax(0,1fr)_20rem]">
-              <AnalyticsSectionNav className="hidden lg:flex" items={sectionItems} />
+              <div className="hidden lg:block" />
 
-              <div className="max-w-sm rounded-[1.6rem] border border-white/12 bg-white/8 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.07)] lg:justify-self-end">
-                <div className="flex items-center gap-2 text-sm text-white/68">
+              <div className="max-w-sm rounded-[1.6rem] border border-border/70 bg-white/70 px-4 py-4 shadow-[inset_0_1px_0_rgba(255,255,255,0.65)] lg:justify-self-end">
+                <div className="flex items-center gap-2 text-sm text-muted-foreground">
                   <SparklesIcon className="size-4" />
                   Current focus
                 </div>
-                <div className="mt-3 text-lg font-medium text-white">
+                <div className="mt-3 text-lg font-medium text-foreground">
                   {selectedPaymentMethod ?? strongestPaymentMethod?.text ?? 'All payment methods'}
                 </div>
-                <p className="mt-2 text-sm leading-6 text-white/72">
+                <p className="mt-2 text-sm leading-6 text-muted-foreground">
                   Select a payment mode from the radar legend or the share card to isolate its
                   profile.
                 </p>
@@ -155,6 +155,10 @@ export function ImmersiveAnalyticsPage({
             }
           />
         </div>
+      </section>
+
+      <section className="sticky top-[5.25rem] z-20 -mx-1 scroll-mt-28 px-1">
+        <AnalyticsSectionNav items={sectionItems} />
       </section>
 
       <section className="grid gap-4 sm:grid-cols-2 xl:grid-cols-4">
@@ -269,18 +273,13 @@ function AnalyticsSectionNav({
   onNavigate?: () => void
 }) {
   return (
-    <div
-      className={cn(
-        'rounded-[1.6rem] border border-white/12 bg-white/7 p-2 backdrop-blur-sm',
-        className,
-      )}
-    >
-      <div className="flex flex-col gap-2 lg:flex-row lg:flex-wrap">
+    <div className={cn('analytics-subnav rounded-[1.6rem] p-2', className)}>
+      <div className="flex gap-2 overflow-x-auto pb-1">
         {items.map((item) => (
           <a
             key={item.id}
             href={`#${item.id}`}
-            className="inline-flex items-center gap-2 rounded-full border border-white/10 bg-white/8 px-3 py-2 text-sm text-white/74 transition-colors hover:bg-white/12 hover:text-white"
+            className="inline-flex shrink-0 items-center gap-2 rounded-full border border-border/70 bg-white/80 px-3 py-2 text-sm text-muted-foreground shadow-sm transition-colors hover:bg-white hover:text-foreground"
             onClick={onNavigate}
           >
             {item.icon}
@@ -295,8 +294,8 @@ function AnalyticsSectionNav({
 function SectionHeading({ title, description }: { title: string; description: string }) {
   return (
     <div className="space-y-1">
-      <h2 className="text-xl font-semibold text-white">{title}</h2>
-      <p className="text-sm text-white/64">{description}</p>
+      <h2 className="text-xl font-semibold text-foreground">{title}</h2>
+      <p className="text-sm text-muted-foreground">{description}</p>
     </div>
   )
 }
@@ -314,18 +313,18 @@ function MetricCard({
 }) {
   return (
     <Card
-      className={cn(panelClassName, 'rounded-[1.75rem] shadow-[0_16px_42px_rgba(8,6,18,0.14)]')}
+      className={cn(panelClassName, 'rounded-[1.75rem] shadow-[0_16px_42px_rgba(74,68,88,0.1)]')}
     >
       <CardHeader className="gap-2">
-        <CardDescription className="flex items-center gap-2 text-white/64">
-          <span className="flex size-8 items-center justify-center rounded-full border border-white/12 bg-white/10 text-[#f8f1ff]">
+        <CardDescription className="flex items-center gap-2 text-muted-foreground">
+          <span className="flex size-8 items-center justify-center rounded-full border border-border/70 bg-white/70 text-foreground shadow-sm">
             {icon}
           </span>
           {label}
         </CardDescription>
-        <CardTitle className="text-[1.7rem] leading-none text-white">{value}</CardTitle>
+        <CardTitle className="text-[1.7rem] leading-none text-foreground">{value}</CardTitle>
       </CardHeader>
-      <CardContent className="pt-0 text-sm text-white/70">{detail}</CardContent>
+      <CardContent className="pt-0 text-sm text-muted-foreground">{detail}</CardContent>
     </Card>
   )
 }

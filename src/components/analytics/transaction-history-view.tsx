@@ -91,14 +91,14 @@ export function TransactionHistoryView({
 
   return (
     <section>
-      <Card className="analytics-card rounded-[2rem] text-white shadow-[0_18px_52px_rgba(10,8,18,0.16)]">
+      <Card className="analytics-card rounded-[2rem] text-foreground shadow-[0_18px_52px_rgba(74,68,88,0.1)]">
         <CardHeader className="gap-4">
           <div className="space-y-1">
-            <CardTitle className="flex items-center gap-2 text-white">
+            <CardTitle className="flex items-center gap-2 text-foreground">
               <HistoryIcon className="size-4" />
               Transaction history
             </CardTitle>
-            <CardDescription className="text-white/72">
+            <CardDescription className="text-muted-foreground">
               Browse the actual synced transactions with independent local filters that persist in
               this browser.
             </CardDescription>
@@ -107,11 +107,11 @@ export function TransactionHistoryView({
           <div className="grid gap-3 md:grid-cols-4">
             <HistoryField label="Search">
               <div className="relative">
-                <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-white/38" />
+                <SearchIcon className="pointer-events-none absolute top-1/2 left-3 size-3.5 -translate-y-1/2 text-muted-foreground" />
                 <Input
                   value={filters.query}
                   onChange={(event) => updateFilters({ query: event.target.value })}
-                  className="border-white/12 bg-white/8 pl-8 text-white placeholder:text-white/36"
+                  className="border-border/70 bg-white/80 pl-8 text-foreground placeholder:text-muted-foreground"
                   placeholder="Search note, category, payment"
                 />
               </div>
@@ -162,14 +162,14 @@ export function TransactionHistoryView({
         </CardHeader>
 
         <CardContent className="space-y-4">
-          <div className="flex items-center justify-between gap-3 rounded-[1.2rem] border border-white/10 bg-white/7 px-4 py-3 text-sm text-white/68">
+          <div className="flex flex-col gap-3 rounded-[1.2rem] border border-border/70 bg-white/70 px-4 py-3 text-sm text-muted-foreground shadow-sm sm:flex-row sm:items-center sm:justify-between">
             <span>
-              Showing <span className="font-medium text-white">{filteredExpenses.length}</span> of{' '}
-              {expenses.length} transactions
+              Showing <span className="font-medium text-foreground">{filteredExpenses.length}</span>{' '}
+              of {expenses.length} transactions
             </span>
             <button
               type="button"
-              className="rounded-full border border-white/10 bg-white/8 px-3 py-1 text-xs text-white/76 transition-colors hover:bg-white/12"
+              className="rounded-full border border-border/70 bg-white/80 px-3 py-1 text-xs text-foreground shadow-sm transition-colors hover:bg-white"
               onClick={() => setFilters(getDefaultTransactionHistoryFilters())}
             >
               Reset filters
@@ -184,7 +184,7 @@ export function TransactionHistoryView({
                 return (
                   <article
                     key={expense.id}
-                    className="rounded-[1.3rem] border border-white/10 bg-white/7 px-4 py-4 transition-colors hover:bg-white/9"
+                    className="rounded-[1.3rem] border border-border/70 bg-white/70 px-4 py-4 shadow-sm transition-colors hover:bg-white"
                   >
                     <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
                       <div className="min-w-0 space-y-2">
@@ -198,19 +198,19 @@ export function TransactionHistoryView({
                           >
                             {expense.category}
                           </span>
-                          <span className="rounded-full border border-white/10 bg-white/8 px-2.5 py-1 text-xs text-white/66">
+                          <span className="rounded-full border border-border/70 bg-white/80 px-2.5 py-1 text-xs text-muted-foreground shadow-sm">
                             {paymentMethod}
                           </span>
-                          <span className="text-xs text-white/46">
+                          <span className="text-xs text-muted-foreground">
                             {formatDate(expense.date, 'MMM d, yyyy • h:mm a')}
                           </span>
                         </div>
 
-                        <div className="text-sm leading-6 text-white/74">
+                        <div className="text-sm leading-6 text-foreground/80">
                           {expense.note.trim() || 'No note provided'}
                         </div>
 
-                        <div className="flex flex-wrap gap-3 text-xs text-white/46">
+                        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
                           <span>ID: {expense.id}</span>
                           {expense.paymentMethod?.identifier ? (
                             <span>Method ID: {expense.paymentMethod.identifier}</span>
@@ -221,13 +221,13 @@ export function TransactionHistoryView({
                         </div>
                       </div>
 
-                      <div className="text-right">
-                        <div className="text-lg font-semibold text-white">
+                      <div className="text-left sm:text-right">
+                        <div className="text-lg font-semibold text-foreground">
                           {formatCurrencyValue(Math.abs(expense.amount), currency, {
                             maximumFractionDigits: 2,
                           })}
                         </div>
-                        <div className="mt-1 text-xs text-white/48">
+                        <div className="mt-1 text-xs text-muted-foreground">
                           Updated {formatDate(expense.updatedAt, 'MMM d')}
                         </div>
                       </div>
@@ -236,7 +236,7 @@ export function TransactionHistoryView({
                 )
               })
             ) : (
-              <div className="rounded-[1.3rem] border border-white/10 bg-white/7 px-4 py-6 text-sm text-white/64">
+              <div className="rounded-[1.3rem] border border-border/70 bg-white/70 px-4 py-6 text-sm text-muted-foreground shadow-sm">
                 No transactions match the current history filters.
               </div>
             )}
@@ -250,7 +250,7 @@ export function TransactionHistoryView({
 function HistoryField({ label, children }: { label: string; children: React.ReactNode }) {
   return (
     <label className="space-y-1.5">
-      <div className="text-xs uppercase tracking-[0.16em] text-white/50">{label}</div>
+      <div className="text-xs uppercase tracking-[0.16em] text-muted-foreground">{label}</div>
       {children}
     </label>
   )
@@ -261,7 +261,7 @@ function HistorySelect(props: React.ComponentProps<'select'>) {
     <select
       {...props}
       className={cn(
-        'h-8 w-full rounded-lg border border-white/12 bg-white/8 px-2.5 text-sm text-white outline-none transition-colors focus:border-white/24',
+        'h-8 w-full rounded-lg border border-border/70 bg-white/80 px-2.5 text-sm text-foreground outline-none transition-colors focus:border-ring',
         props.className,
       )}
     />
