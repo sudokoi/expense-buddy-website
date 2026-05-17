@@ -135,6 +135,7 @@ function AnalyticsRoute() {
             repoName={snapshot.repo.repoFullName}
             branchName={snapshot.repo.branch}
             totalExpenses={snapshot.expenses.length}
+            timeZone={timeZone}
           />
         </Suspense>
       )}

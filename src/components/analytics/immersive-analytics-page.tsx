@@ -11,6 +11,7 @@ import {
   PaymentCategoryRadarChart,
   PaymentShareChart,
 } from '@/components/analytics/analytics-charts'
+import { CustomGraphStudio } from '@/components/analytics/custom-graph-studio'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import type { AnalyticsDashboardData } from '@/features/analytics/dashboard-data'
@@ -24,6 +25,7 @@ interface ImmersiveAnalyticsPageProps {
   repoName: string
   branchName: string
   totalExpenses: number
+  timeZone?: string | null
 }
 
 const panelClassName = 'analytics-card rounded-[2rem] text-white'
@@ -34,6 +36,7 @@ export function ImmersiveAnalyticsPage({
   repoName,
   branchName,
   totalExpenses,
+  timeZone,
 }: ImmersiveAnalyticsPageProps) {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null)
   const currency = analytics.selectedCurrency
@@ -168,6 +171,12 @@ export function ImmersiveAnalyticsPage({
         <CategoryBreakdownChart currency={currency} items={analytics.categoryBreakdown} />
         <DailySpendChart currency={currency} points={analytics.lineChartData} />
       </section>
+
+      <CustomGraphStudio
+        currency={currency}
+        expenses={analytics.filteredExpenses}
+        timeZone={timeZone}
+      />
     </div>
   )
 }
