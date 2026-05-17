@@ -3,7 +3,7 @@
 import { scaleBand, scaleLinear, scalePoint } from 'd3-scale'
 import { line } from 'd3-shape'
 import { useEffect, useMemo, useState } from 'react'
-import { PencilLineIcon, PlusIcon, SaveIcon, Table2Icon, Trash2Icon } from 'lucide-react'
+import { CopyIcon, PencilLineIcon, PlusIcon, SaveIcon, Table2Icon, Trash2Icon } from 'lucide-react'
 
 import { formatCurrencyValue } from '@/components/analytics/analytics-charts'
 import { Button } from '@/components/ui/button'
@@ -13,6 +13,7 @@ import {
   buildCustomGraphModel,
   cloneGraphSpec,
   getDefaultGraphSpec,
+  getGraphDimensionOptions,
   getGraphFieldDefinition,
   getGraphFieldsByKind,
   graphSpecToDsl,
@@ -28,6 +29,7 @@ import {
 } from '@/features/analytics/custom-graphs'
 import {
   createSavedCustomGraph,
+  duplicateSavedCustomGraph,
   loadSavedCustomGraphs,
   persistSavedCustomGraphs,
   updateSavedCustomGraph,
@@ -57,7 +59,13 @@ export function CustomGraphStudio({
   const [spec, setSpec] = useState<GraphSpec>(() => getDefaultGraphSpec('bar'))
   const [savedGraphs, setSavedGraphs] = useState<SavedCustomGraph[]>([])
   const [selectedSavedGraphId, setSelectedSavedGraphId] = useState<string | null>(null)
+  const [renamingGraphId, setRenamingGraphId] = useState<string | null>(null)
+  const [renameDraft, setRenameDraft] = useState('')
   const issues = useMemo(() => validateGraphSpec(spec), [spec])
+  const filterOptions = useMemo(
+    () => (spec.filterField ? getGraphDimensionOptions(expenses, spec.filterField, timeZone) : []),
+    [expenses, spec.filterField, timeZone],
+  )
   const activeSavedGraph =
     savedGraphs.find((savedGraph) => savedGraph.id === selectedSavedGraphId) ?? null
   const isDirty = activeSavedGraph
@@ -117,6 +125,7 @@ export function CustomGraphStudio({
   function handleLoadSaved(entry: SavedCustomGraph) {
     setSpec(cloneGraphSpec(entry.spec))
     setSelectedSavedGraphId(entry.id)
+    setRenamingGraphId(null)
   }
 
   function handleDeleteSaved(entry: SavedCustomGraph) {
@@ -132,6 +141,53 @@ export function CustomGraphStudio({
   function handleResetDraft() {
     setSelectedSavedGraphId(null)
     setSpec(getDefaultGraphSpec(spec.chartType))
+  }
+
+  function handleDuplicateSaved(entry: SavedCustomGraph) {
+    const duplicate = duplicateSavedCustomGraph(entry)
+    const nextSavedGraphs = [duplicate, ...savedGraphs].sort((left, right) =>
+      right.updatedAt.localeCompare(left.updatedAt),
+    )
+
+    setSavedGraphs(nextSavedGraphs)
+    setSelectedSavedGraphId(duplicate.id)
+    setSpec(cloneGraphSpec(duplicate.spec))
+    persistSavedCustomGraphs(nextSavedGraphs)
+  }
+
+  function handleStartRename(entry: SavedCustomGraph) {
+    setRenamingGraphId(entry.id)
+    setRenameDraft(entry.spec.title)
+  }
+
+  function handleRenameSaved(entry: SavedCustomGraph) {
+    const trimmedTitle = renameDraft.trim()
+    if (!trimmedTitle) return
+
+    const nextSavedGraphs = savedGraphs
+      .map((savedGraph) =>
+        savedGraph.id === entry.id
+          ? updateSavedCustomGraph(savedGraph, {
+              ...savedGraph.spec,
+              title: trimmedTitle,
+            })
+          : savedGraph,
+      )
+      .sort((left, right) => right.updatedAt.localeCompare(left.updatedAt))
+
+    setSavedGraphs(nextSavedGraphs)
+    if (selectedSavedGraphId === entry.id) {
+      setSpec((current) => ({ ...current, title: trimmedTitle }))
+    }
+    setRenamingGraphId(null)
+    persistSavedCustomGraphs(nextSavedGraphs)
+  }
+
+  function handleFilterFieldChange(value: GraphFieldId | null) {
+    updateSpec({
+      filterField: value as GraphSpec['filterField'],
+      filterValue: null,
+    })
   }
 
   return (
@@ -210,6 +266,96 @@ export function CustomGraphStudio({
           </div>
 
           <ChartFieldControls spec={spec} onChange={updateSpec} />
+
+          <div className="grid gap-3 md:grid-cols-4">
+            {spec.chartType !== 'scatter' ? (
+              <StudioField label="Sort by">
+                <NativeSelect
+                  value={spec.sortBy}
+                  onChange={(event) =>
+                    updateSpec({ sortBy: event.target.value as GraphSpec['sortBy'] })
+                  }
+                >
+                  <option value="label">Label</option>
+                  <option value="value">Value</option>
+                </NativeSelect>
+              </StudioField>
+            ) : (
+              <StudioField label="Sort by">
+                <NativeSelect value="label" disabled>
+                  <option value="label">Input order</option>
+                </NativeSelect>
+              </StudioField>
+            )}
+
+            {spec.chartType !== 'scatter' ? (
+              <StudioField label="Sort order">
+                <NativeSelect
+                  value={spec.sortOrder}
+                  onChange={(event) =>
+                    updateSpec({ sortOrder: event.target.value as GraphSpec['sortOrder'] })
+                  }
+                >
+                  <option value="asc">Ascending</option>
+                  <option value="desc">Descending</option>
+                </NativeSelect>
+              </StudioField>
+            ) : (
+              <StudioField label="Sort order">
+                <NativeSelect value="asc" disabled>
+                  <option value="asc">Not used</option>
+                </NativeSelect>
+              </StudioField>
+            )}
+
+            <StudioField label="Top N">
+              <Input
+                type="number"
+                min="1"
+                value={spec.limit ?? ''}
+                onChange={(event) =>
+                  updateSpec({
+                    limit: event.target.value ? Number.parseInt(event.target.value, 10) : null,
+                  })
+                }
+                className="border-white/12 bg-white/8 text-white placeholder:text-white/36"
+                placeholder="All"
+                disabled={spec.chartType === 'scatter'}
+              />
+            </StudioField>
+
+            <StudioField label="Filter field">
+              <FieldSelect
+                kind="dimension"
+                value={spec.filterField}
+                includeBlank
+                blankLabel="No filter"
+                onChange={handleFilterFieldChange}
+              />
+            </StudioField>
+          </div>
+
+          {spec.filterField ? (
+            <div className="grid gap-3 md:grid-cols-2">
+              <StudioField label="Filter value">
+                <NativeSelect
+                  value={spec.filterValue ?? ''}
+                  onChange={(event) => updateSpec({ filterValue: event.target.value || null })}
+                >
+                  <option value="">All values</option>
+                  {filterOptions.map((option) => (
+                    <option key={option.value} value={option.value}>
+                      {option.label}
+                    </option>
+                  ))}
+                </NativeSelect>
+              </StudioField>
+              <div className="rounded-[1rem] border border-white/10 bg-white/6 px-4 py-3 text-sm text-white/64">
+                Filter narrows the custom graph before aggregation. This keeps saved graphs focused
+                without changing the main dashboard filters.
+              </div>
+            </div>
+          ) : null}
 
           <div className="flex flex-wrap gap-2">
             <Button
@@ -290,7 +436,25 @@ export function CustomGraphStudio({
                 >
                   <div className="flex items-start justify-between gap-3">
                     <div>
-                      <div className="font-medium text-white">{entry.spec.title}</div>
+                      {renamingGraphId === entry.id ? (
+                        <div className="flex items-center gap-2">
+                          <Input
+                            value={renameDraft}
+                            onChange={(event) => setRenameDraft(event.target.value)}
+                            className="h-8 border-white/12 bg-white/8 text-white"
+                          />
+                          <Button
+                            size="sm"
+                            variant="ghost"
+                            className="rounded-full border border-white/10 bg-white/8 text-white/82 hover:bg-white/12"
+                            onClick={() => handleRenameSaved(entry)}
+                          >
+                            Save
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="font-medium text-white">{entry.spec.title}</div>
+                      )}
                       <div className="mt-1 text-xs text-white/54">
                         {GRAPH_TYPE_LABELS[entry.spec.chartType]} • updated{' '}
                         {new Date(entry.updatedAt).toLocaleString()}
@@ -304,6 +468,22 @@ export function CustomGraphStudio({
                         onClick={() => handleLoadSaved(entry)}
                       >
                         Load
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="rounded-full border border-white/10 bg-white/8 text-white/82 hover:bg-white/12"
+                        onClick={() => handleStartRename(entry)}
+                      >
+                        <PencilLineIcon />
+                      </Button>
+                      <Button
+                        size="sm"
+                        variant="ghost"
+                        className="rounded-full border border-white/10 bg-white/8 text-white/82 hover:bg-white/12"
+                        onClick={() => handleDuplicateSaved(entry)}
+                      >
+                        <CopyIcon />
                       </Button>
                       <Button
                         size="sm"

@@ -12,6 +12,8 @@ import type { Expense } from '@/types/expense'
 
 export type GraphChartType = 'bar' | 'line' | 'scatter' | 'pivot'
 export type GraphAggregation = 'sum' | 'average' | 'count'
+export type GraphSortBy = 'label' | 'value'
+export type GraphSortOrder = 'asc' | 'desc'
 export type GraphDimensionFieldId =
   | 'category'
   | 'paymentMethod'
@@ -32,6 +34,11 @@ export interface GraphSpec {
   rowField: GraphFieldId | null
   columnField: GraphFieldId | null
   aggregation: GraphAggregation
+  sortBy: GraphSortBy
+  sortOrder: GraphSortOrder
+  limit: number | null
+  filterField: GraphDimensionFieldId | null
+  filterValue: string | null
 }
 
 export interface GraphFieldDefinition {
@@ -40,6 +47,11 @@ export interface GraphFieldDefinition {
   kind: 'dimension' | 'measure'
   valueType: 'categorical' | 'temporal' | 'numeric'
   description: string
+}
+
+export interface GraphDimensionOption {
+  value: string
+  label: string
 }
 
 export interface GraphSeriesPoint {
@@ -177,6 +189,11 @@ export const DEFAULT_GRAPH_SPECS: Record<GraphChartType, GraphSpec> = {
     rowField: 'category',
     columnField: 'paymentMethod',
     aggregation: 'sum',
+    sortBy: 'value',
+    sortOrder: 'desc',
+    limit: null,
+    filterField: null,
+    filterValue: null,
   },
   line: {
     title: 'Spend over days',
@@ -188,6 +205,11 @@ export const DEFAULT_GRAPH_SPECS: Record<GraphChartType, GraphSpec> = {
     rowField: 'category',
     columnField: 'paymentMethod',
     aggregation: 'sum',
+    sortBy: 'label',
+    sortOrder: 'asc',
+    limit: null,
+    filterField: null,
+    filterValue: null,
   },
   scatter: {
     title: 'Expense distribution',
@@ -199,6 +221,11 @@ export const DEFAULT_GRAPH_SPECS: Record<GraphChartType, GraphSpec> = {
     rowField: 'category',
     columnField: 'paymentMethod',
     aggregation: 'sum',
+    sortBy: 'label',
+    sortOrder: 'asc',
+    limit: null,
+    filterField: null,
+    filterValue: null,
   },
   pivot: {
     title: 'Category x payment method',
@@ -210,6 +237,11 @@ export const DEFAULT_GRAPH_SPECS: Record<GraphChartType, GraphSpec> = {
     rowField: 'category',
     columnField: 'paymentMethod',
     aggregation: 'sum',
+    sortBy: 'value',
+    sortOrder: 'desc',
+    limit: null,
+    filterField: null,
+    filterValue: null,
   },
 }
 
@@ -229,11 +261,36 @@ export function getGraphFieldsByKind(kind: GraphFieldDefinition['kind']) {
   return GRAPH_FIELD_DEFINITIONS.filter((field) => field.kind === kind)
 }
 
+export function getGraphDimensionOptions(
+  expenses: Expense[],
+  fieldId: GraphDimensionFieldId,
+  timeZone?: string | null,
+): GraphDimensionOption[] {
+  const values = new Set<string>()
+
+  for (const expense of expenses) {
+    values.add(getDimensionValue(expense, fieldId, timeZone || undefined))
+  }
+
+  return sortDimensionValues(fieldId, Array.from(values)).map((value) => ({
+    value,
+    label: formatDimensionValue(fieldId, value),
+  }))
+}
+
 export function validateGraphSpec(spec: GraphSpec): string[] {
   const issues: string[] = []
 
   if (!spec.title.trim()) {
     issues.push('Add a title so the custom graph can be identified later.')
+  }
+
+  if (spec.limit !== null && (!Number.isInteger(spec.limit) || spec.limit < 1)) {
+    issues.push('Top N should be a whole number greater than zero.')
+  }
+
+  if (spec.filterValue && !spec.filterField) {
+    issues.push('Choose a filter field before selecting a filter value.')
   }
 
   if (spec.chartType === 'bar' || spec.chartType === 'line') {
@@ -319,14 +376,16 @@ export function buildCustomGraphModel(
   spec: GraphSpec,
   timeZone?: string | null,
 ): CustomGraphModel {
+  const filteredExpenses = filterExpensesForGraphSpec(expenses, spec, timeZone || undefined)
+
   switch (spec.chartType) {
     case 'bar':
     case 'line':
-      return buildAggregatedGraphModel(expenses, spec, timeZone || undefined)
+      return buildAggregatedGraphModel(filteredExpenses, spec, timeZone || undefined)
     case 'scatter':
-      return buildScatterGraphModel(expenses, spec, timeZone || undefined)
+      return buildScatterGraphModel(filteredExpenses, spec, timeZone || undefined)
     case 'pivot':
-      return buildPivotGraphModel(expenses, spec, timeZone || undefined)
+      return buildPivotGraphModel(filteredExpenses, spec, timeZone || undefined)
   }
 }
 
@@ -339,8 +398,15 @@ export function graphSpecToDsl(spec: GraphSpec): string {
       `  columns: ${spec.columnField ?? 'unset'}`,
       `  value: ${spec.yField ?? 'count'}`,
       `  aggregate: ${spec.aggregation}`,
+      `  sort: ${spec.sortBy} ${spec.sortOrder}`,
+      spec.limit ? `  top: ${spec.limit}` : null,
+      spec.filterField && spec.filterValue
+        ? `  where: ${spec.filterField} = \"${spec.filterValue}\"`
+        : null,
       '}',
-    ].join('\n')
+    ]
+      .filter(Boolean)
+      .join('\n')
   }
 
   return [
@@ -351,6 +417,11 @@ export function graphSpecToDsl(spec: GraphSpec): string {
     spec.zField ? `  z: ${spec.zField}` : null,
     spec.groupField ? `  group: ${spec.groupField}` : null,
     spec.chartType === 'scatter' ? null : `  aggregate: ${spec.aggregation}`,
+    spec.chartType === 'scatter' ? null : `  sort: ${spec.sortBy} ${spec.sortOrder}`,
+    spec.chartType === 'scatter' || !spec.limit ? null : `  top: ${spec.limit}`,
+    spec.filterField && spec.filterValue
+      ? `  where: ${spec.filterField} = \"${spec.filterValue}\"`
+      : null,
     '}',
   ]
     .filter(Boolean)
@@ -386,7 +457,19 @@ function buildAggregatedGraphModel(
     groupKeys.add(groupKey)
   }
 
-  const sortedXKeys = sortDimensionValues(xField, Array.from(xKeys))
+  const xMetrics = new Map<string, { sum: number; count: number }>()
+
+  for (const cell of grouped.values()) {
+    const metric = xMetrics.get(cell.xKey) ?? { sum: 0, count: 0 }
+    metric.sum += cell.sum
+    metric.count += cell.count
+    xMetrics.set(cell.xKey, metric)
+  }
+
+  const sortedXKeys = sortDimensionKeysForSpec(spec, xField, Array.from(xKeys), xMetrics).slice(
+    0,
+    spec.limit ?? Number.POSITIVE_INFINITY,
+  )
   const sortedGroupKeys = spec.groupField
     ? sortDimensionValues(spec.groupField as GraphDimensionFieldId, Array.from(groupKeys))
     : ['All expenses']
@@ -470,6 +553,7 @@ function buildPivotGraphModel(
   const columnField = spec.columnField as GraphDimensionFieldId
   const valueField = spec.aggregation === 'count' ? null : (spec.yField as GraphMeasureFieldId)
   const cells = new Map<string, { sum: number; count: number }>()
+  const rowMetrics = new Map<string, { sum: number; count: number }>()
   const rowKeys = new Set<string>()
   const columnKeys = new Set<string>()
 
@@ -479,18 +563,26 @@ function buildPivotGraphModel(
     const value = spec.aggregation === 'count' ? 1 : getMeasureValue(expense, valueField!, timeZone)
     const cellKey = `${rowKey}:::${columnKey}`
     const current = cells.get(cellKey) ?? { sum: 0, count: 0 }
+    const rowMetric = rowMetrics.get(rowKey) ?? { sum: 0, count: 0 }
 
     current.sum += value
     current.count += 1
+    rowMetric.sum += value
+    rowMetric.count += 1
 
     cells.set(cellKey, current)
+    rowMetrics.set(rowKey, rowMetric)
     rowKeys.add(rowKey)
     columnKeys.add(columnKey)
   }
 
-  const rows = sortDimensionValues(rowField, Array.from(rowKeys)).map((key) =>
-    formatDimensionValue(rowField, key),
-  )
+  const sortedRowKeys = sortDimensionKeysForSpec(
+    spec,
+    rowField,
+    Array.from(rowKeys),
+    rowMetrics,
+  ).slice(0, spec.limit ?? Number.POSITIVE_INFINITY)
+  const rows = sortedRowKeys.map((key) => formatDimensionValue(rowField, key))
   const columns = sortDimensionValues(columnField, Array.from(columnKeys)).map((key) =>
     formatDimensionValue(columnField, key),
   )
@@ -499,7 +591,7 @@ function buildPivotGraphModel(
   const values: Record<string, number> = {}
   let grandTotal = 0
 
-  for (const rawRowKey of sortDimensionValues(rowField, Array.from(rowKeys))) {
+  for (const rawRowKey of sortedRowKeys) {
     const rowLabel = formatDimensionValue(rowField, rawRowKey)
 
     for (const rawColumnKey of sortDimensionValues(columnField, Array.from(columnKeys))) {
@@ -575,6 +667,44 @@ function sortDimensionValues(fieldId: GraphDimensionFieldId, values: string[]): 
   }
 
   return [...values].sort((left, right) => left.localeCompare(right))
+}
+
+function filterExpensesForGraphSpec(expenses: Expense[], spec: GraphSpec, timeZone?: string) {
+  if (!spec.filterField || !spec.filterValue) {
+    return expenses
+  }
+
+  return expenses.filter(
+    (expense) => getDimensionValue(expense, spec.filterField!, timeZone) === spec.filterValue,
+  )
+}
+
+function sortDimensionKeysForSpec(
+  spec: GraphSpec,
+  fieldId: GraphDimensionFieldId,
+  keys: string[],
+  metrics: Map<string, { sum: number; count: number }>,
+) {
+  const labelSortedKeys = sortDimensionValues(fieldId, keys)
+
+  if (spec.sortBy === 'label') {
+    return spec.sortOrder === 'asc' ? labelSortedKeys : [...labelSortedKeys].reverse()
+  }
+
+  return [...keys].sort((left, right) => {
+    const leftMetric = metrics.get(left) ?? { sum: 0, count: 0 }
+    const rightMetric = metrics.get(right) ?? { sum: 0, count: 0 }
+    const leftValue =
+      spec.aggregation === 'average' ? leftMetric.sum / (leftMetric.count || 1) : leftMetric.sum
+    const rightValue =
+      spec.aggregation === 'average' ? rightMetric.sum / (rightMetric.count || 1) : rightMetric.sum
+
+    if (leftValue === rightValue) {
+      return formatDimensionValue(fieldId, left).localeCompare(formatDimensionValue(fieldId, right))
+    }
+
+    return spec.sortOrder === 'asc' ? leftValue - rightValue : rightValue - leftValue
+  })
 }
 
 function formatDimensionValue(fieldId: GraphDimensionFieldId | null, value: string): string {
