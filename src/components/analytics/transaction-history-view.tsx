@@ -274,9 +274,6 @@ function HistoryRow({
 
           <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
             <span>ID: {expense.id}</span>
-            {expense.paymentMethod?.identifier ? (
-              <span>Method ID: {expense.paymentMethod.identifier}</span>
-            ) : null}
             {instrumentLabel ? <span>Instrument: {instrumentLabel}</span> : null}
           </div>
         </div>
