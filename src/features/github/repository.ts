@@ -1,13 +1,16 @@
 import { createServerFn } from '@tanstack/react-start'
 
 import { importFromCSV } from '@/features/analytics/csv'
+import {
+  EXPENSE_FILE_PATTERN,
+  normalizeSyncDirectory,
+  scopeRepositoryFiles,
+} from '@/features/github/repository-paths'
 import type { ConnectedRepoSummary, GitHubSyncFile } from '@/features/github/types'
 import { createInstallationOctokit } from '@/server/github-app'
 import { requireConnectedSessionMiddleware } from '@/server/auth-middleware'
 import type { Expense } from '@/types/expense'
 import type { SyncedSettings } from '@/types/settings'
-
-const EXPENSE_FILE_PATTERN = /^expenses-(\d{4}-\d{2}-\d{2})\.csv$/
 
 export interface RepositorySnapshot {
   repo: ConnectedRepoSummary
@@ -68,13 +71,15 @@ export const loadRepositorySnapshot = createServerFn({ method: 'GET' })
       repoId: session.repoId!,
       repoFullName: session.repoFullName!,
       branch: session.branch!,
+      syncDirectory: normalizeSyncDirectory(session.syncDirectory),
     }
 
     const files = await getRepositoryTree(summary)
-    const expenseFiles = files.filter((file) => EXPENSE_FILE_PATTERN.test(file.path))
+    const scopedFiles = scopeRepositoryFiles(files, summary.syncDirectory)
+    const expenseFiles = scopedFiles.filter((file) => EXPENSE_FILE_PATTERN.test(file.relativePath))
 
     let settings: SyncedSettings | null = null
-    const settingsFile = files.find((file) => file.path === 'settings.json')
+    const settingsFile = scopedFiles.find((file) => file.relativePath === 'settings.json')
     if (settingsFile) {
       try {
         settings = JSON.parse(await getFileContent(summary, settingsFile.path)) as SyncedSettings

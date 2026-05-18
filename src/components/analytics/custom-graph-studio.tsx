@@ -860,36 +860,40 @@ function SeriesPreview({
 
   return (
     <div className="space-y-4 rounded-[1.4rem] border border-border/70 bg-white/70 px-4 py-4 shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+        <div className="space-y-3">
           <div className="text-sm font-medium text-foreground">Live preview</div>
-          <div className="text-xs text-muted-foreground">
+          <div className="min-h-[1.25rem] text-xs text-muted-foreground">
             {hoveredPoint
               ? `${hoveredPoint.group} • ${hoveredPoint.label}`
               : `${GRAPH_TYPE_LABELS[spec.chartType]} chart with ${model.groups.length} series.`}
           </div>
-        </div>
-        {hoveredPoint ? (
-          <div className="rounded-full border border-border/70 bg-white/80 px-3 py-1.5 text-xs text-foreground shadow-sm">
-            {formatGraphValue(hoveredPoint.value, model.yField, model.aggregation, currency)}
-          </div>
-        ) : null}
-        {!compact ? (
-          <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-            {model.groups.map((group, index) => (
-              <span
-                key={group.key}
-                className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-white/80 px-2.5 py-1 shadow-sm"
-              >
+          {!compact ? (
+            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+              {model.groups.map((group, index) => (
                 <span
-                  className="inline-block size-2 rounded-full"
-                  style={{ backgroundColor: getSeriesColor(group.label, index) }}
-                />
-                {group.label}
-              </span>
-            ))}
+                  key={group.key}
+                  className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-white/80 px-2.5 py-1 shadow-sm"
+                >
+                  <span
+                    className="inline-block size-2 rounded-full"
+                    style={{ backgroundColor: getSeriesColor(group.label, index) }}
+                  />
+                  {group.label}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </div>
+        <div className="min-h-[3.5rem] min-w-[9rem] justify-self-start lg:justify-self-end">
+          <div className="rounded-[1rem] border border-border/70 bg-white/80 px-3 py-2 text-xs text-foreground shadow-sm">
+            {hoveredPoint ? (
+              formatGraphValue(hoveredPoint.value, model.yField, model.aggregation, currency)
+            ) : (
+              <span className="text-muted-foreground">Hover a point</span>
+            )}
           </div>
-        ) : null}
+        </div>
       </div>
 
       <div className="-mx-2 overflow-x-auto px-2 sm:mx-0 sm:px-0">
@@ -1039,40 +1043,46 @@ function ScatterPreview({
 
   return (
     <div className="space-y-4 rounded-[1.4rem] border border-border/70 bg-white/70 px-4 py-4 shadow-sm">
-      <div className="flex flex-wrap items-center justify-between gap-3">
-        <div>
+      <div className="grid gap-3 lg:grid-cols-[minmax(0,1fr)_auto] lg:items-start">
+        <div className="space-y-3">
           <div className="text-sm font-medium text-foreground">Live preview</div>
-          <div className="text-xs text-muted-foreground">
+          <div className="min-h-[1.25rem] text-xs text-muted-foreground">
             {hoveredPoint
               ? `${hoveredPoint.group} • ${hoveredPoint.label}`
               : `Scatter plot using ${xFieldLabel} vs ${yFieldLabel}.`}
           </div>
-        </div>
-        {hoveredPoint ? (
-          <div className="rounded-[1rem] border border-border/70 bg-white/80 px-3 py-2 text-xs text-foreground shadow-sm">
-            <div>X: {formatGraphValue(hoveredPoint.x, spec.xField, 'sum', currency)}</div>
-            <div>Y: {formatGraphValue(hoveredPoint.y, spec.yField, 'sum', currency)}</div>
-            {spec.zField ? (
-              <div>Z: {formatGraphValue(hoveredPoint.z, spec.zField, 'sum', currency)}</div>
-            ) : null}
-          </div>
-        ) : null}
-        {!compact ? (
-          <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
-            {groups.map((group, index) => (
-              <span
-                key={group}
-                className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-white/80 px-2.5 py-1 shadow-sm"
-              >
+          {!compact ? (
+            <div className="flex flex-wrap gap-2 text-xs text-muted-foreground">
+              {groups.map((group, index) => (
                 <span
-                  className="inline-block size-2 rounded-full"
-                  style={{ backgroundColor: getSeriesColor(group, index) }}
-                />
-                {group}
-              </span>
-            ))}
+                  key={group}
+                  className="inline-flex items-center gap-2 rounded-full border border-border/70 bg-white/80 px-2.5 py-1 shadow-sm"
+                >
+                  <span
+                    className="inline-block size-2 rounded-full"
+                    style={{ backgroundColor: getSeriesColor(group, index) }}
+                  />
+                  {group}
+                </span>
+              ))}
+            </div>
+          ) : null}
+        </div>
+        <div className="min-h-[4.5rem] min-w-[9rem] justify-self-start lg:justify-self-end">
+          <div className="rounded-[1rem] border border-border/70 bg-white/80 px-3 py-2 text-xs text-foreground shadow-sm">
+            {hoveredPoint ? (
+              <>
+                <div>X: {formatGraphValue(hoveredPoint.x, spec.xField, 'sum', currency)}</div>
+                <div>Y: {formatGraphValue(hoveredPoint.y, spec.yField, 'sum', currency)}</div>
+                {spec.zField ? (
+                  <div>Z: {formatGraphValue(hoveredPoint.z, spec.zField, 'sum', currency)}</div>
+                ) : null}
+              </>
+            ) : (
+              <span className="text-muted-foreground">Hover a bubble</span>
+            )}
           </div>
-        ) : null}
+        </div>
       </div>
 
       <div className="-mx-2 overflow-x-auto px-2 sm:mx-0 sm:px-0">

@@ -80,6 +80,11 @@ function AnalyticsRoute() {
       surface="light"
       contentClassName="py-4 sm:py-6"
       sessionLabel={snapshot.repo.repoFullName}
+      sessionInfo={{
+        repoFullName: snapshot.repo.repoFullName,
+        branch: snapshot.repo.branch,
+        syncDirectory: snapshot.repo.syncDirectory,
+      }}
     >
       {!hasExpenses ? (
         <Card>

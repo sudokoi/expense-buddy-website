@@ -13,6 +13,10 @@ export interface GitHubInstallationRepository {
   }
 }
 
+export interface GitHubBranch {
+  name: string
+}
+
 export interface GitHubUserProfile {
   id: number
   login: string
@@ -136,4 +140,20 @@ export async function createInstallationOctokit(installationId: number, reposito
   }
 
   return new Octokit({ auth: auth.token })
+}
+
+export async function listRepositoryBranches(
+  installationId: number,
+  repositoryId: number,
+  repoFullName: string,
+) {
+  const octokit = await createInstallationOctokit(installationId, [repositoryId])
+  const [owner, repo] = repoFullName.split('/')
+  const { data } = await octokit.request('GET /repos/{owner}/{repo}/branches', {
+    owner,
+    repo,
+    per_page: 100,
+  })
+
+  return data as GitHubBranch[]
 }

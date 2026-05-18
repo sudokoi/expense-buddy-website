@@ -2,6 +2,8 @@ import { redirect } from '@tanstack/react-router'
 import { createServerFn } from '@tanstack/react-start'
 import { useSession } from '@tanstack/react-start/server'
 import { z } from 'zod'
+
+import { normalizeSyncDirectory } from '@/features/github/repository-paths'
 import type { AuthSessionData } from '@/server/session'
 
 import { env } from '@/lib/env.server'
@@ -11,6 +13,7 @@ import {
   getAuthenticatedUser,
   getGitHubAppInstallUrl,
   listInstallationRepositories,
+  listRepositoryBranches,
   listUserInstallations,
 } from '@/server/github-app'
 import {
@@ -143,6 +146,7 @@ export const completeGitHubAuthorization = createServerFn({ method: 'GET' })
       repoId: repo.id,
       repoFullName: repo.full_name,
       branch: repo.default_branch,
+      syncDirectory: '',
       userId: user.id,
       userLogin: user.login,
     }))
@@ -152,6 +156,7 @@ export const completeGitHubAuthorization = createServerFn({ method: 'GET' })
       repoId: repo.id,
       repoFullName: repo.full_name,
       branch: repo.default_branch,
+      syncDirectory: '',
       userLogin: user.login,
     }
   })
@@ -170,6 +175,39 @@ export const updateConnectedBranch = createServerFn({ method: 'POST' })
     }))
 
     return { branch: data.branch.trim() }
+  })
+
+export const updateConnectedSyncDirectory = createServerFn({ method: 'POST' })
+  .inputValidator(
+    z.object({
+      syncDirectory: z.string(),
+    }),
+  )
+  .handler(async ({ data }) => {
+    const session = await useSession<AuthSessionData>(authSessionConfig)
+
+    if (!session.data.installationId || !session.data.repoId || !session.data.repoFullName) {
+      throw new Error('No connected repository')
+    }
+
+    const normalizedDirectory = normalizeSyncDirectory(data.syncDirectory)
+
+    await session.update((oldData) => ({
+      ...oldData,
+      syncDirectory: normalizedDirectory,
+    }))
+
+    return {
+      syncDirectory: normalizedDirectory,
+    }
+  })
+
+export const getConnectedRepositoryBranches = createServerFn({ method: 'GET' })
+  .middleware([requireConnectedSessionMiddleware])
+  .handler(async ({ context }) => {
+    const session = context.auth.session
+
+    return listRepositoryBranches(session.installationId!, session.repoId!, session.repoFullName!)
   })
 
 export const getConnectedSession = createServerFn({ method: 'GET' })

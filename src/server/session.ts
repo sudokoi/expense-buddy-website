@@ -8,6 +8,7 @@ export interface AuthSessionData {
   repoId?: number
   repoFullName?: string
   branch?: string
+  syncDirectory?: string
   userLogin?: string
   userId?: number
 }

@@ -9,4 +9,5 @@ export interface ConnectedRepoSummary {
   repoId: number
   repoFullName: string
   branch: string
+  syncDirectory: string
 }
