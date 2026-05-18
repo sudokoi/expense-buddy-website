@@ -1,8 +1,15 @@
-import { HeadContent, Outlet, Scripts, createRootRouteWithContext } from '@tanstack/react-router'
+import {
+  HeadContent,
+  Outlet,
+  Scripts,
+  createRootRouteWithContext,
+  useRouterState,
+} from '@tanstack/react-router'
 import { ReactQueryDevtools } from '@tanstack/react-query-devtools'
 import { TanStackRouterDevtoolsPanel } from '@tanstack/react-router-devtools'
 import { TanStackDevtools } from '@tanstack/react-devtools'
 
+import { PostHogProvider } from '@/components/posthog-provider'
 import { defaultMetaTitle, siteConfig } from '@/lib/site'
 import type { RouterContext } from '@/router'
 
@@ -51,12 +58,17 @@ export const Route = createRootRouteWithContext<RouterContext>()({
 })
 
 function RootDocument({ children }: { children: React.ReactNode }) {
+  const session = useRouterState({
+    select: (state) => state.matches[0]?.context.auth.session ?? {},
+  })
+
   return (
     <html lang="en">
       <head>
         <HeadContent />
       </head>
       <body className="min-h-screen bg-background font-sans text-foreground antialiased">
+        <PostHogProvider session={session} />
         <div className="root isolate">{children || <Outlet />}</div>
         <TanStackDevtools
           config={{

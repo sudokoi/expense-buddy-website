@@ -65,12 +65,20 @@ Required variables:
 Optional variables:
 
 - `APP_ORIGIN`
+- `VITE_POSTHOG_KEY`
+- `VITE_POSTHOG_HOST`
 
 Local development usually uses:
 
 ```bash
 APP_ORIGIN=http://localhost:3000
 ```
+
+PostHog notes:
+
+- `VITE_POSTHOG_KEY` should be your PostHog project API key and is safe to expose to the browser
+- do not put personal API keys or any server-only PostHog credentials in `VITE_` variables
+- `VITE_POSTHOG_HOST` should match your PostHog project region, for example `https://us.i.posthog.com` or `https://eu.i.posthog.com`
 
 Node.js version is pinned in `.node-version`. The pnpm version is declared in `package.json` via `packageManager`.
 
