@@ -1,10 +1,11 @@
 import { ArrowRightIcon } from 'lucide-react'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute } from '@tanstack/react-router'
 
 import { HomeScene } from '@/components/home/home-scene'
 import { ImmersiveShell } from '@/components/immersive-shell'
-import { getOptionalConnectedSession } from '@/features/auth/github.functions'
 import { getAuthErrorMessage } from '@/features/auth/errors'
+import { optionalSessionQueryOptions } from '@/features/auth/session-query'
 import { Button } from '@/components/ui/button'
 import { Card, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
 import { siteConfig } from '@/lib/site'
@@ -16,9 +17,8 @@ export const Route = createFileRoute('/')({
   validateSearch: (search) => ({
     authError: typeof search.authError === 'string' ? search.authError : undefined,
   }),
-  loader: async () => {
-    const session = await getOptionalConnectedSession()
-    return { session }
+  loader: async ({ context }) => {
+    await context.queryClient.ensureQueryData(optionalSessionQueryOptions())
   },
   component: Home,
 })
@@ -26,7 +26,7 @@ export const Route = createFileRoute('/')({
 function Home() {
   const { authError } = Route.useSearch()
   const authErrorMessage = getAuthErrorMessage(authError)
-  const { session } = Route.useLoaderData()
+  const { data: session } = useSuspenseQuery(optionalSessionQueryOptions())
 
   return (
     <ImmersiveShell

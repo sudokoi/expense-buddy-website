@@ -1,15 +1,12 @@
 import { Suspense, lazy, useEffect, useState } from 'react'
+import { useSuspenseQuery } from '@tanstack/react-query'
 import { createFileRoute, useRouter } from '@tanstack/react-router'
 
 import { ImmersiveShell } from '@/components/immersive-shell'
 import { Badge } from '@/components/ui/badge'
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card'
 import { Skeleton } from '@/components/ui/skeleton'
-import { buildAnalyticsDashboardData } from '@/features/analytics/dashboard-data'
-import { buildAnalyticsQueryResult } from '@/features/analytics/queries'
-import { parseFilters } from '@/features/analytics/filters'
-import { getUserTimezone } from '@/features/analytics/timezone.functions'
-import { loadRepositorySnapshot } from '@/features/github/repository'
+import { analyticsPageQueryOptions } from '@/features/analytics/analytics-query'
 import { USER_TIMEZONE_COOKIE, getScopedCookieName, shouldUseSecureCookies } from '@/lib/cookies'
 
 const ImmersiveAnalyticsPage = lazy(() =>
@@ -20,31 +17,16 @@ const ImmersiveAnalyticsPage = lazy(() =>
 
 export const Route = createFileRoute('/_authenticated/app')({
   validateSearch: (search) => search,
-  loader: async ({ location }) => {
-    const snapshot = await loadRepositorySnapshot()
-    const filters = parseFilters(location.search)
-    const timeZone = await getUserTimezone()
-    const analytics = buildAnalyticsQueryResult({
-      expenses: snapshot.expenses,
-      settings: snapshot.settings,
-      filters,
-      timeZone,
-    })
-    const dashboardData = buildAnalyticsDashboardData(analytics)
-
-    return {
-      snapshot,
-      filters,
-      analytics,
-      dashboardData,
-      timeZone,
-    }
+  loader: async ({ context, location }) => {
+    await context.queryClient.ensureQueryData(analyticsPageQueryOptions(location.search))
   },
   component: AnalyticsRoute,
 })
 
 function AnalyticsRoute() {
-  const { snapshot, analytics, dashboardData, timeZone } = Route.useLoaderData()
+  const search = Route.useSearch()
+  const { data } = useSuspenseQuery(analyticsPageQueryOptions(search))
+  const { snapshot, analytics, dashboardData, timeZone } = data
   const router = useRouter()
   const [isSyncingTimezone, setIsSyncingTimezone] = useState(false)
   const hasExpenses = snapshot.expenses.length > 0
