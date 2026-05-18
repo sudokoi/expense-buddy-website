@@ -1,6 +1,6 @@
 import { ArrowRightIcon } from 'lucide-react'
 import { useSuspenseQuery } from '@tanstack/react-query'
-import { createFileRoute, redirect } from '@tanstack/react-router'
+import { createFileRoute } from '@tanstack/react-router'
 
 import { HomeScene } from '@/components/home/home-scene'
 import { ImmersiveShell } from '@/components/immersive-shell'
@@ -18,11 +18,7 @@ export const Route = createFileRoute('/')({
     authError: typeof search.authError === 'string' ? search.authError : undefined,
   }),
   loader: async ({ context }) => {
-    const session = await context.queryClient.ensureQueryData(optionalSessionQueryOptions())
-
-    if (session) {
-      throw redirect({ to: '/app' })
-    }
+    await context.queryClient.ensureQueryData(optionalSessionQueryOptions())
   },
   component: Home,
 })
