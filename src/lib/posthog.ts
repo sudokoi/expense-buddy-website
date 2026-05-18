@@ -1,7 +1,7 @@
 import posthog from 'posthog-js'
 
 const posthogKey = import.meta.env.VITE_POSTHOG_KEY?.trim()
-const posthogHost = import.meta.env.VITE_POSTHOG_HOST?.trim() || 'https://us.i.posthog.com'
+const posthogHost = import.meta.env.VITE_POSTHOG_HOST?.trim() || 'https://t.sudh.online'
 
 let hasInitializedPostHog = false
 
@@ -14,6 +14,7 @@ export function getPostHogOptions() {
     api_host: posthogHost,
     capture_pageview: false,
     capture_pageleave: true,
+    defaults: '2026-01-30' as const,
     person_profiles: 'identified_only' as const,
   }
 }

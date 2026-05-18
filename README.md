@@ -78,7 +78,8 @@ PostHog notes:
 
 - `VITE_POSTHOG_KEY` should be your PostHog project API key and is safe to expose to the browser
 - do not put personal API keys or any server-only PostHog credentials in `VITE_` variables
-- `VITE_POSTHOG_HOST` should match your PostHog project region, for example `https://us.i.posthog.com` or `https://eu.i.posthog.com`
+- `VITE_POSTHOG_HOST` should point at your analytics ingress host; for this setup that is `https://t.sudh.online`
+- the client config uses PostHog `defaults: '2026-01-30'` to align with the current recommended initialization behavior
 
 Node.js version is pinned in `.node-version`. The pnpm version is declared in `package.json` via `packageManager`.
 
