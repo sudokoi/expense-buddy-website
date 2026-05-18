@@ -69,6 +69,8 @@ export function ImmersiveAnalyticsPage({
   const strongestPaymentMethod = analytics.paymentMethodBreakdown.at(0)
   const strongestCategory = analytics.categoryBreakdown.at(0)
   const sectionItems = useMemo(() => ANALYTICS_SECTIONS, [])
+  const focusedPaymentMethod =
+    selectedPaymentMethod ?? dashboardData.paymentCategoryRadar.series.at(0)?.id ?? null
 
   useEffect(() => {
     const sentinel = stickyNavSentinelRef.current
@@ -192,11 +194,11 @@ export function ImmersiveAnalyticsPage({
                 </Badge>
                 <div className="space-y-2">
                   <h1 className="text-3xl font-semibold tracking-tight sm:text-4xl">
-                    Calm, high-signal analytics for your spending history.
+                    See where your money is going.
                   </h1>
                   <p className="max-w-2xl text-sm leading-6 text-muted-foreground sm:text-base">
-                    The main radar view highlights how payment methods distribute across your
-                    largest categories, sourced from{' '}
+                    Explore how your payment methods stack up across your biggest categories, using
+                    the synced history from{' '}
                     <span className="font-medium text-foreground">{repoName}</span> on{' '}
                     <span className="font-medium text-foreground">{branchName}</span>.
                   </p>
@@ -226,11 +228,11 @@ export function ImmersiveAnalyticsPage({
                   Current focus
                 </div>
                 <div className="mt-3 text-lg font-medium text-foreground">
-                  {selectedPaymentMethod ?? strongestPaymentMethod?.text ?? 'All payment methods'}
+                  {focusedPaymentMethod ?? strongestPaymentMethod?.text ?? 'All payment methods'}
                 </div>
                 <p className="mt-2 text-sm leading-6 text-muted-foreground">
-                  Select a payment mode from the radar legend or the share card to isolate its
-                  profile.
+                  Selecting a payment mode in either card keeps the radar, share view, and summary
+                  locked to the same profile.
                 </p>
               </div>
             </div>
@@ -321,13 +323,13 @@ export function ImmersiveAnalyticsPage({
           <PaymentCategoryRadarChart
             currency={currency}
             data={dashboardData.paymentCategoryRadar}
-            selectedPaymentMethod={selectedPaymentMethod}
+            selectedPaymentMethod={focusedPaymentMethod}
             onSelectPaymentMethod={setSelectedPaymentMethod}
           />
           <PaymentShareChart
             currency={currency}
             items={analytics.paymentMethodBreakdown}
-            selectedPaymentMethod={selectedPaymentMethod}
+            selectedPaymentMethod={focusedPaymentMethod}
             onSelectPaymentMethod={setSelectedPaymentMethod}
           />
         </div>

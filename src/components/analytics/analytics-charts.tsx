@@ -104,7 +104,7 @@ export function PaymentCategoryRadarChart({
   const height = 520
   const centerX = width / 2
   const centerY = height / 2 + 10
-  const activeMethod = selectedPaymentMethod ?? data.series.at(0)?.id ?? null
+  const activeMethod = selectedPaymentMethod
   const activeSeries = data.series.find((series) => series.id === activeMethod) ?? data.series.at(0)
   const [zoomLevel, setZoomLevel] = useState(1)
   const radarRadius = 150 * zoomLevel
@@ -166,7 +166,7 @@ export function PaymentCategoryRadarChart({
             variant="ghost"
             className={cn(
               'rounded-full border px-3 text-foreground',
-              selectedPaymentMethod === null
+              activeMethod === null
                 ? 'border-border bg-white shadow-sm hover:bg-white'
                 : 'border-border/70 bg-white/70 text-muted-foreground hover:bg-white hover:text-foreground',
             )}
@@ -182,11 +182,11 @@ export function PaymentCategoryRadarChart({
               variant="ghost"
               className={cn(
                 'rounded-full border px-3 text-foreground',
-                selectedPaymentMethod === series.id
+                activeMethod === series.id
                   ? 'border-border bg-white shadow-sm hover:bg-white'
                   : 'border-border/70 bg-white/70 text-muted-foreground hover:bg-white hover:text-foreground',
               )}
-              onClick={() => onSelectPaymentMethod(series.id)}
+              onClick={() => onSelectPaymentMethod(series.id === activeMethod ? null : series.id)}
             >
               <span
                 className="mr-2 inline-block size-2.5 rounded-full"
@@ -267,8 +267,7 @@ export function PaymentCategoryRadarChart({
                   .x((point) => point.x)
                   .y((point) => point.y)
                   .curve(curveLinearClosed)(series.points)
-                const isSelected =
-                  selectedPaymentMethod === null || selectedPaymentMethod === series.id
+                const isSelected = activeMethod === null || activeMethod === series.id
 
                 return (
                   <g key={series.id} opacity={isSelected ? 1 : 0.24}>
@@ -341,9 +340,7 @@ export function PaymentCategoryRadarChart({
                     ? 'border-border bg-white shadow-sm'
                     : 'border-border/70 bg-white/70 hover:bg-white',
                 )}
-                onClick={() =>
-                  onSelectPaymentMethod(series.id === selectedPaymentMethod ? null : series.id)
-                }
+                onClick={() => onSelectPaymentMethod(series.id === activeMethod ? null : series.id)}
               >
                 <span className="flex min-w-0 items-center gap-3 text-sm text-foreground/80">
                   <span
@@ -512,7 +509,7 @@ export function PaymentShareChart({
         .value((item) => item.value)(items),
     [items],
   )
-  const activeMethod = selectedPaymentMethod ?? items.at(0)?.paymentMethodType ?? null
+  const activeMethod = selectedPaymentMethod
   const activeItem = items.find((item) => item.paymentMethodType === activeMethod) ?? items.at(0)
   const displayItem =
     items.find((item) => item.paymentMethodType === hoveredMethod) ?? activeItem ?? null
@@ -555,7 +552,7 @@ export function PaymentShareChart({
                   onPointerEnter={() => setHoveredMethod(datum.data.paymentMethodType)}
                   onClick={() =>
                     onSelectPaymentMethod(
-                      datum.data.paymentMethodType === selectedPaymentMethod
+                      datum.data.paymentMethodType === activeMethod
                         ? null
                         : datum.data.paymentMethodType,
                     )
@@ -598,9 +595,7 @@ export function PaymentShareChart({
                 )}
                 onClick={() =>
                   onSelectPaymentMethod(
-                    item.paymentMethodType === selectedPaymentMethod
-                      ? null
-                      : item.paymentMethodType,
+                    item.paymentMethodType === activeMethod ? null : item.paymentMethodType,
                   )
                 }
                 onPointerEnter={() => setHoveredMethod(item.paymentMethodType)}
