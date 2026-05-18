@@ -28,6 +28,7 @@ import type { AnalyticsDashboardData } from '@/features/analytics/dashboard-data
 import { formatDate } from '@/features/analytics/date'
 import type { AnalyticsQueryResult } from '@/features/analytics/queries'
 import { cn } from '@/lib/utils'
+import type { SyncedSettings } from '@/types/settings'
 
 interface ImmersiveAnalyticsPageProps {
   analytics: AnalyticsQueryResult
@@ -35,6 +36,7 @@ interface ImmersiveAnalyticsPageProps {
   repoName: string
   branchName: string
   totalExpenses: number
+  settings: SyncedSettings | null
   timeZone?: string | null
 }
 
@@ -55,6 +57,7 @@ export function ImmersiveAnalyticsPage({
   repoName,
   branchName,
   totalExpenses,
+  settings,
   timeZone,
 }: ImmersiveAnalyticsPageProps) {
   const [selectedPaymentMethod, setSelectedPaymentMethod] = useState<string | null>(null)
@@ -365,7 +368,11 @@ export function ImmersiveAnalyticsPage({
           title="History"
           description="Inspect the underlying synced transactions with independent local filters."
         />
-        <TransactionHistoryView currency={currency} expenses={analytics.filteredExpenses} />
+        <TransactionHistoryView
+          currency={currency}
+          expenses={analytics.filteredExpenses}
+          settings={settings}
+        />
       </section>
     </div>
   )

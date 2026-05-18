@@ -1,6 +1,7 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
+import { useVirtualizer } from '@tanstack/react-virtual'
 import { HistoryIcon, SearchIcon } from 'lucide-react'
 
 import { formatCurrencyValue } from '@/components/analytics/analytics-charts'
@@ -20,18 +21,25 @@ import type {
 import { resolvePaymentMethodType } from '@/features/analytics/payment-methods'
 import { cn } from '@/lib/utils'
 import type { Expense } from '@/types/expense'
+import type { SyncedSettings } from '@/types/settings'
+
+const HISTORY_ROW_ESTIMATE = 160
+const HISTORY_VIEWPORT_HEIGHT = 640
 
 export function TransactionHistoryView({
   currency,
   expenses,
+  settings,
 }: {
   currency: string
   expenses: Expense[]
+  settings: SyncedSettings | null
 }) {
   const [filters, setFilters] = useState<TransactionHistoryFilters>(
     getDefaultTransactionHistoryFilters,
   )
   const [hasLoadedFilters, setHasLoadedFilters] = useState(false)
+  const parentRef = useRef<HTMLDivElement | null>(null)
 
   useEffect(() => {
     setFilters(loadTransactionHistoryFilters())
@@ -84,6 +92,13 @@ export function TransactionHistoryView({
       })
       .sort((left, right) => compareExpenses(left, right, filters.sortOrder))
   }, [expenses, filters])
+  const instrumentLabels = useMemo(() => buildInstrumentLabelMap(settings), [settings])
+  const rowVirtualizer = useVirtualizer({
+    count: filteredExpenses.length,
+    getScrollElement: () => parentRef.current,
+    estimateSize: () => HISTORY_ROW_ESTIMATE,
+    overscan: 6,
+  })
 
   function updateFilters(patch: Partial<TransactionHistoryFilters>) {
     setFilters((current) => ({ ...current, ...patch }))
@@ -178,63 +193,36 @@ export function TransactionHistoryView({
 
           <div className="space-y-3">
             {filteredExpenses.length ? (
-              filteredExpenses.map((expense) => {
-                const paymentMethod = resolvePaymentMethodType(expense.paymentMethod?.type)
+              <div
+                ref={parentRef}
+                className="overflow-y-auto rounded-[1.4rem] border border-border/70 bg-white/45 p-2 shadow-[inset_0_1px_0_rgba(255,255,255,0.55)]"
+                style={{ maxHeight: HISTORY_VIEWPORT_HEIGHT }}
+              >
+                <div
+                  className="relative w-full"
+                  style={{ height: `${rowVirtualizer.getTotalSize()}px` }}
+                >
+                  {rowVirtualizer.getVirtualItems().map((virtualItem) => {
+                    const expense = filteredExpenses[virtualItem.index]
 
-                return (
-                  <article
-                    key={expense.id}
-                    className="rounded-[1.3rem] border border-border/70 bg-white/70 px-4 py-4 shadow-sm transition-colors hover:bg-white"
-                  >
-                    <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
-                      <div className="min-w-0 space-y-2">
-                        <div className="flex flex-wrap items-center gap-2">
-                          <span
-                            className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium"
-                            style={{
-                              backgroundColor: `${getCategoryColor(expense.category)}1f`,
-                              color: getCategoryColor(expense.category),
-                            }}
-                          >
-                            {expense.category}
-                          </span>
-                          <span className="rounded-full border border-border/70 bg-white/80 px-2.5 py-1 text-xs text-muted-foreground shadow-sm">
-                            {paymentMethod}
-                          </span>
-                          <span className="text-xs text-muted-foreground">
-                            {formatDate(expense.date, 'MMM d, yyyy • h:mm a')}
-                          </span>
-                        </div>
-
-                        <div className="text-sm leading-6 text-foreground/80">
-                          {expense.note.trim() || 'No note provided'}
-                        </div>
-
-                        <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-                          <span>ID: {expense.id}</span>
-                          {expense.paymentMethod?.identifier ? (
-                            <span>Method ID: {expense.paymentMethod.identifier}</span>
-                          ) : null}
-                          {expense.paymentMethod?.instrumentId ? (
-                            <span>Instrument: {expense.paymentMethod.instrumentId}</span>
-                          ) : null}
-                        </div>
+                    return (
+                      <div
+                        key={expense.id}
+                        className="absolute top-0 left-0 w-full px-1 pb-3"
+                        data-index={virtualItem.index}
+                        ref={rowVirtualizer.measureElement}
+                        style={{ transform: `translateY(${virtualItem.start}px)` }}
+                      >
+                        <HistoryRow
+                          currency={currency}
+                          expense={expense}
+                          instrumentLabel={resolveInstrumentLabel(expense, instrumentLabels)}
+                        />
                       </div>
-
-                      <div className="text-left sm:text-right">
-                        <div className="text-lg font-semibold text-foreground">
-                          {formatCurrencyValue(Math.abs(expense.amount), currency, {
-                            maximumFractionDigits: 2,
-                          })}
-                        </div>
-                        <div className="mt-1 text-xs text-muted-foreground">
-                          Updated {formatDate(expense.updatedAt, 'MMM d')}
-                        </div>
-                      </div>
-                    </div>
-                  </article>
-                )
-              })
+                    )
+                  })}
+                </div>
+              </div>
             ) : (
               <div className="rounded-[1.3rem] border border-border/70 bg-white/70 px-4 py-6 text-sm text-muted-foreground shadow-sm">
                 No transactions match the current history filters.
@@ -245,6 +233,102 @@ export function TransactionHistoryView({
       </Card>
     </section>
   )
+}
+
+function HistoryRow({
+  currency,
+  expense,
+  instrumentLabel,
+}: {
+  currency: string
+  expense: Expense
+  instrumentLabel: string | null
+}) {
+  const paymentMethod = resolvePaymentMethodType(expense.paymentMethod?.type)
+
+  return (
+    <article className="rounded-[1.3rem] border border-border/70 bg-white/70 px-4 py-4 shadow-sm transition-colors hover:bg-white">
+      <div className="flex flex-col gap-3 sm:flex-row sm:items-start sm:justify-between">
+        <div className="min-w-0 space-y-2">
+          <div className="flex flex-wrap items-center gap-2">
+            <span
+              className="inline-flex items-center rounded-full px-2.5 py-1 text-xs font-medium"
+              style={{
+                backgroundColor: `${getCategoryColor(expense.category)}1f`,
+                color: getCategoryColor(expense.category),
+              }}
+            >
+              {expense.category}
+            </span>
+            <span className="rounded-full border border-border/70 bg-white/80 px-2.5 py-1 text-xs text-muted-foreground shadow-sm">
+              {paymentMethod}
+            </span>
+            <span className="text-xs text-muted-foreground">
+              {formatDate(expense.date, 'MMM d, yyyy • h:mm a')}
+            </span>
+          </div>
+
+          <div className="text-sm leading-6 text-foreground/80">
+            {expense.note.trim() || 'No note provided'}
+          </div>
+
+          <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+            <span>ID: {expense.id}</span>
+            {expense.paymentMethod?.identifier ? (
+              <span>Method ID: {expense.paymentMethod.identifier}</span>
+            ) : null}
+            {instrumentLabel ? <span>Instrument: {instrumentLabel}</span> : null}
+          </div>
+        </div>
+
+        <div className="text-left sm:text-right">
+          <div className="text-lg font-semibold text-foreground">
+            {formatCurrencyValue(Math.abs(expense.amount), currency, {
+              maximumFractionDigits: 2,
+            })}
+          </div>
+          <div className="mt-1 text-xs text-muted-foreground">
+            Updated {formatDate(expense.updatedAt, 'MMM d')}
+          </div>
+        </div>
+      </div>
+    </article>
+  )
+}
+
+export function buildInstrumentLabelMap(settings: SyncedSettings | null) {
+  const instruments = settings?.paymentInstruments ?? []
+
+  return new Map(
+    instruments
+      .filter((instrument) => instrument.id)
+      .map((instrument) => [instrument.id, formatInstrumentLabel(instrument)]),
+  )
+}
+
+export function resolveInstrumentLabel(expense: Expense, instrumentLabels: Map<string, string>) {
+  const instrumentId = expense.paymentMethod?.instrumentId
+
+  if (!instrumentId) {
+    return null
+  }
+
+  return instrumentLabels.get(instrumentId) ?? null
+}
+
+export function formatInstrumentLabel(
+  instrument: NonNullable<SyncedSettings['paymentInstruments']>[number],
+) {
+  const segments = [instrument.nickname?.trim(), instrument.method?.trim()].filter(Boolean)
+  const baseLabel = segments.join(' · ')
+
+  if (instrument.lastDigits?.trim()) {
+    return baseLabel
+      ? `${baseLabel} • ${instrument.lastDigits.trim()}`
+      : instrument.lastDigits.trim()
+  }
+
+  return baseLabel || instrument.id
 }
 
 function HistoryField({ label, children }: { label: string; children: React.ReactNode }) {

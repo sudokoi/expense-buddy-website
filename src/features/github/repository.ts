@@ -74,7 +74,9 @@ export const loadRepositorySnapshot = createServerFn({ method: 'GET' })
     const expenseFiles = files.filter((file) => EXPENSE_FILE_PATTERN.test(file.path))
 
     let settings: SyncedSettings | null = null
-    const settingsFile = files.find((file) => file.path === 'settings.json')
+    const settingsFile = files.find(
+      (file) => file.path === 'settings.json' || file.path === 'sync/settings.json',
+    )
     if (settingsFile) {
       try {
         settings = JSON.parse(await getFileContent(summary, settingsFile.path)) as SyncedSettings

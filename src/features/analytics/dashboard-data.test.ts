@@ -4,6 +4,7 @@ import { buildAnalyticsDashboardData } from '@/features/analytics/dashboard-data
 import { buildAnalyticsQueryResult } from '@/features/analytics/queries'
 import type { FilterState } from '@/types/analytics'
 import type { Expense } from '@/types/expense'
+import type { SyncedSettings } from '@/types/settings'
 
 const baseFilters: FilterState = {
   timeWindow: '1m',
@@ -23,6 +24,13 @@ function makeExpense(overrides: Partial<Expense>): Expense {
     note: '',
     createdAt: '2026-01-10T12:00:00.000Z',
     updatedAt: '2026-01-10T12:00:00.000Z',
+    ...overrides,
+  }
+}
+
+function makeSettings(overrides: Partial<SyncedSettings> = {}): SyncedSettings {
+  return {
+    defaultCurrency: 'INR',
     ...overrides,
   }
 }
@@ -56,7 +64,7 @@ describe('buildAnalyticsDashboardData', () => {
           paymentMethod: { type: 'Cash' },
         }),
       ],
-      settings: { defaultCurrency: 'INR' },
+      settings: makeSettings(),
       filters: baseFilters,
       timeZone: 'Asia/Kolkata',
     })
@@ -82,7 +90,7 @@ describe('buildAnalyticsDashboardData', () => {
         makeExpense({ id: 'missing-1', category: 'Other', amount: 120, paymentMethod: undefined }),
         makeExpense({ id: 'upi-1', category: 'Food', amount: 80, paymentMethod: { type: 'UPI' } }),
       ],
-      settings: { defaultCurrency: 'INR' },
+      settings: makeSettings(),
       filters: baseFilters,
       timeZone: 'Asia/Kolkata',
     })
