@@ -272,10 +272,11 @@ function HistoryRow({
             {expense.note.trim() || 'No note provided'}
           </div>
 
-          <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
-            <span>ID: {expense.id}</span>
-            {instrumentLabel ? <span>Instrument: {instrumentLabel}</span> : null}
-          </div>
+          {instrumentLabel ? (
+            <div className="flex flex-wrap gap-3 text-xs text-muted-foreground">
+              <span>Instrument: {instrumentLabel}</span>
+            </div>
+          ) : null}
         </div>
 
         <div className="text-left sm:text-right">
